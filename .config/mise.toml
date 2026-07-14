@@ -2,7 +2,7 @@
 # You can create your own root-level mise.toml file to override/augment this. See https://mise.jdx.dev/configuration.html
 
 [env]
-_.vfox-pulumi = { module_path = "." } # Sets GO_VERSION_MISE and PULUMI_VERSION_MISE
+_.vfox-pulumi = { module_path = "." }   # Sets GO_VERSION_MISE and PULUMI_VERSION_MISE
 PULUMI_HOME = "{{config_root}}/.pulumi"
 
 [tools]
@@ -21,14 +21,15 @@ java = 'corretto-11'
 "github:pulumi/schema-tools" = "0.6.0"
 "go:github.com/pulumi/upgrade-provider" = "main"
 "aqua:gradle/gradle-distributions" = '7.6.6'
-golangci-lint = "2.12.2" # See note about about overrides if you need to customize this.
+golangci-lint = "2.12.2"                                 # See note about about overrides if you need to customize this.
 "npm:yarn" = "1.22.22"
+trunk = "1.3.4"
 
 [settings]
-experimental = true # Required for Go binaries (e.g. pulumictl).
+experimental = true                 # Required for Go binaries (e.g. pulumictl).
 lockfile = false
 http_retries = 3
-pin = true # `mise use` should pin versions instead of defaulting to latest.
+pin = true                          # `mise use` should pin versions instead of defaulting to latest.
 fetch_remote_versions_cache = "24h" # Mise queries versions even if they're pinned to confirm they exist. Reduce GitHub API calls by doing that less often.
 
 [plugins]

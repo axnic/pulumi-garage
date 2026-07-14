@@ -8,11 +8,11 @@ module_path="github.com/pulumi/pulumi/pkg/v3"
 go_mod_path="."
 gomod="go.mod"
 
-if [[ "$go_mod_path" != "" && "$go_mod_path" != "." ]]; then
+if [[ $go_mod_path != "" && $go_mod_path != "." ]]; then
   gomod="$go_mod_path/$gomod"
 fi
 
-if [[ ! -f "$gomod" ]]; then
+if [[ ! -f $gomod ]]; then
   echo "missing $gomod" >&2
   exit 1
 fi
@@ -29,7 +29,7 @@ raw_version=$(awk -v module="$module_path" '
     }
 ' "$gomod")
 
-if [[ -z "${raw_version:-}" ]]; then
+if [[ -z ${raw_version-} ]]; then
   echo "failed to determine Pulumi version from $gomod" >&2
   exit 1
 fi
@@ -40,13 +40,13 @@ export PULUMI_VERSION_MISE=$raw_version
 # Prefer the toolchain directive if present, otherwise fall back to the `go` version line
 go_toolchain=$(awk '/^toolchain[[:space:]]+go[0-9]/{ print $2; exit }' "$gomod")
 
-if [[ -n "${go_toolchain:-}" ]]; then
+if [[ -n ${go_toolchain-} ]]; then
   go_version=${go_toolchain#go}
 else
   go_version=$(awk '/^go[[:space:]]+[0-9]/{ print $2; exit }' "$gomod")
 fi
 
-if [[ -z "${go_version:-}" ]]; then
+if [[ -z ${go_version-} ]]; then
   echo "failed to determine Go version from $gomod" >&2
   exit 1
 fi

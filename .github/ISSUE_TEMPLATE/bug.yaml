@@ -11,7 +11,8 @@ body:
     id: what-happened
     attributes:
       label: Describe what happened
-      description: Please summarize what happened, including what Pulumi commands you ran, as well as
+      description:
+        Please summarize what happened, including what Pulumi commands you ran, as well as
         an inline snippet of any relevant error or console output.
     validations:
       required: true
