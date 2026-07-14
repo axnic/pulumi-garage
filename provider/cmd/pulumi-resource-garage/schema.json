@@ -2,21 +2,37 @@
   "name": "garage",
   "displayName": "pulumi-garage",
   "description": "A Pulumi provider to manage Garage S3-compatible object storage.",
+  "keywords": [
+    "garage",
+    "s3",
+    "object-storage",
+    "self-hosted"
+  ],
   "homepage": "https://github.com/axnic/pulumi-garage",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/axnic/pulumi-garage",
+  "pluginDownloadURL": "github://api.github.com/axnic/pulumi-garage",
+  "publisher": "axnic",
   "namespace": "axnic",
   "language": {
     "csharp": {
-      "respectSchemaVersion": true
+      "respectSchemaVersion": true,
+      "rootNamespace": "Pulumi"
     },
     "go": {
       "generateResourceContainerTypes": true,
       "importBasePath": "github.com/axnic/pulumi-garage/sdk/go/pulumi-garage",
       "respectSchemaVersion": true
     },
+    "java": {
+      "basePackage": "com.axnic.pulumi"
+    },
     "nodejs": {
+      "packageName": "@axnic/pulumi-garage",
       "respectSchemaVersion": true
     },
     "python": {
+      "packageName": "pulumi_garage",
       "pyproject": {
         "enabled": true
       },
