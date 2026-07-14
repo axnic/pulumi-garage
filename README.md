@@ -1,112 +1,243 @@
-# Pulumi Native Provider Boilerplate
+# Pulumi Garage Provider
 
-This repository is a boilerplate showing how to create and locally test a native Pulumi provider (with examples of both CustomResource and ComponentResource [resource types](https://www.pulumi.com/docs/iac/concepts/resources/)).
+A Pulumi native provider for managing [Garage](https://garagehq.deuxfleurs.fr), a
+self-hosted, S3-compatible distributed object storage system, through its Admin API.
 
-## Authoring a Pulumi Native Provider
+It manages three resources:
 
-This boilerplate creates a working Pulumi-owned provider named `provider-boilerplate`.
-It implements a random number generator that you can [build and test out for yourself](#test-against-the-example) and then replace the Random code with code specific to your provider.
+- **`Bucket`** - a Garage bucket, with an optional global alias, static-website
+  hosting configuration, and storage quotas.
+- **`Key`** - an S3 access key.
+- **`BucketKeyPermission`** - a read/write/owner permission grant of a `Key` on a
+  `Bucket`.
 
-### Prerequisites
+Cluster bootstrapping (nodes, zones, capacity, layout) is out of scope - see
+[Known limitations](#known-limitations).
 
-You will need to ensure the following tools are installed and present in your `$PATH`:
+> **Note on provenance.** This provider was built end-to-end by an AI coding
+> agent (Claude) in an autonomous, "vibe coded" session, without a human
+> reviewing the implementation line by line. That's a deliberate reason the
+> project leans hard on automated testing rather than manual review for
+> confidence: unit tests for the Admin API client and each resource's
+> create/read/update/delete logic, plus a real end-to-end suite that stands up
+> an actual Garage cluster in Docker and exercises it (including a genuine S3
+> object upload/download through a granted permission) - see
+> [Development & testing](#development--testing). Review the code yourself
+> before trusting it with production data.
 
-- [`pulumictl`](https://github.com/pulumi/pulumictl#installation)
-- [Go 1.21](https://golang.org/dl/) or 1.latest
-- [NodeJS](https://nodejs.org/en/) 14.x. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage NodeJS installations.
-- [Yarn](https://yarnpkg.com/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Python](https://www.python.org/downloads/) (called as `python3`). For recent versions of MacOS, the system-installed version is fine.
-- [.NET](https://dotnet.microsoft.com/download)
+## Prerequisites
 
-### Build & test the boilerplate provider
+- [Go](https://go.dev/dl/) 1.25 or later (to build the provider binary)
+- [Pulumi CLI](https://www.pulumi.com/docs/iac/download-install/)
+- [Docker](https://docs.docker.com/get-docker/) - only needed to run the local
+  end-to-end tests (`make test_e2e`), not to use the provider itself
+- A running Garage cluster, with its Admin API reachable. This provider does not
+  bootstrap one for you; see [garagehq.deuxfleurs.fr](https://garagehq.deuxfleurs.fr)
+  for setting one up (`garage layout assign`/`apply`, or `--single-node` for a
+  single-node cluster).
 
-1. Run `make build install` to build and install the provider.
-1. Run `make gen_examples` to generate the example programs in `examples/` off of the source `examples/yaml` example program.
-1. Run `make up` to run the example program in `examples/yaml`.
-1. Run `make down` to tear down the example program.
+## Quickstart
 
-### Creating a new provider repository
+Build and install the provider plugin:
 
-Pulumi offers this repository as a [GitHub template repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template) for convenience. From this repository:
-
-1. Click "Use this template".
-1. Set the following options:
-   - Owner: pulumi
-   - Repository name: pulumi-provider-boilerplate (replace "provider-boilerplate" with the name of your provider)
-   - Description: Pulumi provider for xyz
-   - Repository type: Public
-1. Clone the generated repository.
-
-From the templated repository:
-
-1. Run the following command to update files to use the name of your provider (third-party: use your GitHub organization/username):
-
-   ```bash
-   make prepare NAME=foo ORG=myorg REPOSITORY=github.com/myorg/pulumi-foo
-   ```
-
-   This will do the following:
-   - rename folders in `provider/cmd` to `pulumi-resource-{NAME}`
-   - replace dependencies in `provider/go.mod` to reflect your repository name
-   - find and replace all instances of `provider-boilerplate` with the `NAME` of your provider.
-   - find and replace all instances of the boilerplate `abc` with the `ORG` of your provider.
-   - replace all instances of the `github.com/pulumi/pulumi-provider-boilerplate` repository with the `REPOSITORY` location
-
-#### Build the provider and install the plugin
-
-```bash
+```
 make build install
 ```
 
-This will:
+Point it at your Garage cluster's Admin API, either via stack config:
 
-1. Create the SDK codegen binary and place it in a `./bin` folder (gitignored)
-2. Create the provider binary and place it in the `./bin` folder (gitignored)
-3. Generate the dotnet, Go, Node, and Python SDKs and place them in the `./sdk` folder
-4. Install the provider on your machine.
-
-#### Test against the example
-
-```bash
-cd examples/simple
-yarn link @pulumi/provider-boilerplate
-yarn install
-pulumi stack init test
-pulumi up
+```
+pulumi config set garage:endpoint http://localhost:3903
+pulumi config set garage:adminToken <token> --secret
 ```
 
-Now that you have completed all of the above steps, you have a working provider that generates a random string for you.
+or via the `GARAGE_ADMIN_ENDPOINT` / `GARAGE_ADMIN_TOKEN` environment variables.
 
-#### A brief repository overview
+Then, a minimal YAML program (see `examples/yaml/Pulumi.yaml`):
 
-You now have:
+```yaml
+name: garage-example-yaml
+runtime: yaml
 
-1. A `provider/` folder containing the building and implementation logic.
-   1. `cmd/pulumi-resource-provider-boilerplate/main.go` - holds the provider's sample implementation logic.
-2. `Makefile` - targets to help with building and publishing the provider. Run `make ci-mgmt` to regenerate CI workflows.
-3. `sdk` - holds the generated code libraries created by `pulumi gen-sdk`.
-4. `examples` a folder of Pulumi programs to try locally and/or use in CI.
-5. A `Makefile` and this `README`.
+resources:
+  myKey:
+    type: garage:Key
+    properties:
+      name: my-app-key
+  myBucket:
+    type: garage:Bucket
+    properties:
+      globalAlias: my-app-bucket
+  myPermission:
+    type: garage:BucketKeyPermission
+    properties:
+      bucketId: ${myBucket.id}
+      accessKeyId: ${myKey.accessKeyId}
+      permissions:
+        read: true
+        write: true
 
-#### Additional Details
+outputs:
+  bucketId: ${myBucket.id}
+  accessKeyId: ${myKey.accessKeyId}
+  secretAccessKey: ${myKey.secretAccessKey}
+```
 
-This repository depends on the pulumi-go-provider library. For more details on building providers, please check
-the [Pulumi Go Provider docs](https://github.com/pulumi/pulumi-go-provider).
+Only YAML and Go example programs exist and are tested for this v1; nodejs,
+python, dotnet, and java SDKs are not generated (see
+[Known limitations](#known-limitations)). The Go equivalent is at
+`examples/go/main.go`.
 
-### Build Examples
+## Resource reference
 
-Create an example program using the resources defined in your provider, and place it in the `examples/` folder.
+### `Bucket` (`garage:index:Bucket`)
 
-You can now repeat the steps for [build, install, and test](#test-against-the-example).
+Manages a Garage bucket: its (single) global alias, static-website hosting
+configuration, and storage quotas.
 
-## Configuring CI and releases
+Inputs:
+- `globalAlias` (optional) - The bucket's human-readable global alias, e.g.
+  `"my-app-data"`. Buckets can be created without one and addressed only by ID,
+  but an alias is required to use the bucket over the S3 API with most clients.
+  Only a single global alias is supported; local (per-key) aliases and multiple
+  global aliases are not managed by this provider.
+- `website` (optional) - Static-website hosting configuration for the bucket.
+  Omit to leave website hosting disabled.
+  - `indexDocument` - The document served for requests to the bucket root or any
+    "directory".
+  - `errorDocument` (optional) - The document served for requests that don't
+    match an existing object. Defaults to Garage's built-in error page if unset.
+- `quotas` (optional) - Storage quotas for the bucket. Omit either field, or the
+  whole block, to leave that limit unset.
+  - `maxSize` (optional) - The maximum total size, in bytes, the bucket may hold.
+    Unset means no limit.
+  - `maxObjects` (optional) - The maximum number of objects the bucket may hold.
+    Unset means no limit.
 
-1. Follow the instructions laid out in the [deployment templates](./deployment-templates/README-DEPLOYMENT.md).
+Outputs (in addition to the inputs above):
+- `createdAt` - The RFC 3339 timestamp at which the bucket was created.
+- `objects` - The number of objects currently stored in the bucket.
+- `bytes` - The total size, in bytes, of all objects currently stored in the
+  bucket.
 
-## References
+Deleting a non-empty bucket fails, mirroring Garage's (and S3's) own semantics -
+empty it first before removing it from your Pulumi program.
 
-Other resources/examples for implementing providers:
+### `Key` (`garage:index:Key`)
 
-- [Pulumi Command provider](https://github.com/pulumi/pulumi-command/blob/master/provider/pkg/provider/provider.go)
-- [Pulumi Go Provider repository](https://github.com/pulumi/pulumi-go-provider)
+Manages a Garage S3 access key.
+
+Inputs:
+- `name` (optional) - A human-readable label for the key. If unset, Garage
+  assigns a default name.
+
+Outputs:
+- `accessKeyId` - The S3 access key ID, e.g. the value of `AWS_ACCESS_KEY_ID`.
+- `secretAccessKey` - The S3 secret access key, e.g. the value of
+  `AWS_SECRET_ACCESS_KEY`. Only ever readable at creation time - Garage's Admin
+  API does not return it again afterwards, so it is captured once at `Create`
+  and carried forward in state.
+- `createdAt` - The RFC 3339 timestamp at which the key was created.
+
+The key's global `createBucket` permission is not modelled in v1; keys are
+scoped to buckets exclusively via `BucketKeyPermission`.
+
+### `BucketKeyPermission` (`garage:index:BucketKeyPermission`)
+
+Grants an access `Key` read/write/owner permissions on a `Bucket`. Garage has no
+single natural ID for this grant, so the resource ID is a synthetic
+`<bucketId>/<accessKeyId>` composite.
+
+Inputs:
+- `bucketId` - The ID of the `Bucket` to grant permissions on.
+- `accessKeyId` - The access key ID of the `Key` to grant permissions to.
+- `permissions` - The read/write/owner permissions to grant.
+  - `read` (optional) - Whether the key can read objects (`GetObject`,
+    `ListObjects`, ...) from the bucket.
+  - `write` (optional) - Whether the key can write objects (`PutObject`,
+    `DeleteObject`, ...) to the bucket.
+  - `owner` (optional) - Whether the key has owner rights on the bucket (manage
+    bucket-level settings such as its website configuration or quotas via the
+    S3 API).
+
+## Provider configuration reference
+
+| Key | Env var fallback | Description |
+|---|---|---|
+| `garage:endpoint` | `GARAGE_ADMIN_ENDPOINT` | The base URL of the Garage Admin API, e.g. `"http://localhost:3903"`. |
+| `garage:adminToken` (secret) | `GARAGE_ADMIN_TOKEN` | A bearer token authorized against the Garage Admin API. |
+
+Both are required, one way or the other - the provider fails to configure if
+neither the config key nor its env var fallback is set.
+
+## Development & testing
+
+Build and install the provider binary:
+
+```
+make build install
+```
+
+After changing resource code, regenerate the schema (`provider/cmd/pulumi-resource-garage/schema.json`)
+and Go SDK:
+
+```
+make codegen
+```
+
+Tests are layered:
+
+- `make test` - fast, hermetic unit tests. No live Garage cluster required;
+  example-lifecycle tests are skipped (via `t.Skip`) when
+  `GARAGE_ADMIN_ENDPOINT` isn't set.
+- `make test_e2e` - spins up a real, disposable, single-node Garage cluster via
+  Docker Compose (`docker-compose.e2e.yml`, `dxflrs/garage:v2.3.0`), runs the
+  example programs' full create/update/delete lifecycle against it plus a real
+  S3 `PutObject`/`GetObject` round trip, then tears it down. Requires Docker.
+- `make lint` - runs `golangci-lint`.
+
+CI (`.github/workflows/merge_group,pull_request.ci.yaml`) runs lint, commitlint,
+build, unit tests, and the full E2E suite on every pull request and merge-queue
+entry.
+
+The provider's Admin API client (`provider/internal/garageclient/`) is a
+hand-written, thin HTTP client, internal to the provider and not part of its
+public surface.
+
+## Known limitations
+
+This is a v1, personal/small-org provider - scope is intentionally narrow:
+
+- **No cluster layout management.** Assigning nodes, zones, and capacity is not
+  managed by this provider; it's a one-shot bootstrap operation that doesn't fit
+  cleanly into idempotent IaC. Bootstrap your Garage cluster yourself (e.g.
+  `garage layout assign`/`apply`, or `--single-node`) before pointing this
+  provider at it.
+- **`Bucket` supports only a single global alias.** No local (per-key) aliases,
+  no multiple global aliases.
+- **`Key`'s global `createBucket` permission is not modelled**, deliberately -
+  it wasn't reliable enough to model without further verification against a
+  live API.
+- **Deleting a non-empty `Bucket` fails.** This mirrors Garage's (and S3's) own
+  native behavior; it's by design, not a bug.
+- **Only YAML and Go example programs exist and are tested.** nodejs, python,
+  dotnet, and java SDKs are not generated for this v1 - their stale boilerplate
+  code was removed rather than fixed.
+
+## Additional details
+
+This provider is built on [`pulumi-go-provider`](https://github.com/pulumi/pulumi-go-provider);
+see its docs for background on how native Pulumi providers work.
+
+Repo layout:
+- `provider/` - the provider implementation (`provider.go`, `config.go`,
+  `*_resource.go`), plus the internal Garage Admin API client
+  (`provider/internal/garageclient/`) and the codegen entrypoint
+  (`provider/cmd/pulumi-resource-garage/`).
+- `sdk/` - the generated Go SDK (`make codegen`).
+- `examples/` - the YAML and Go example programs, and their lifecycle tests.
+- `docker-compose.e2e.yml`, `test/e2e/garage.toml` - the local/CI E2E fixture:
+  a disposable single-node Garage cluster with a fixed, test-only
+  `rpc_secret`/`admin_token` (not sensitive - the cluster is ephemeral and
+  local-only).
+- `Makefile` - build, codegen, lint, and test targets.
