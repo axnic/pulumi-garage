@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Garage
+namespace Axnic.Pulumi.Garage
 {
     [GarageResourceType("garage:index:BucketKeyPermission")]
     public partial class BucketKeyPermission : global::Pulumi.CustomResource

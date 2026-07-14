@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Garage.Inputs
+namespace Axnic.Pulumi.Garage.Inputs
 {
 
     public sealed class PermissionsArgsArgs : global::Pulumi.ResourceArgs

@@ -17,7 +17,7 @@
   "language": {
     "csharp": {
       "respectSchemaVersion": true,
-      "rootNamespace": "Pulumi"
+      "rootNamespace": "Axnic.Pulumi"
     },
     "go": {
       "generateResourceContainerTypes": true,

@@ -2,7 +2,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/axnic/pulumi-garage/sdk/go/pulumi-garage.svg)](https://pkg.go.dev/github.com/axnic/pulumi-garage/sdk/go/pulumi-garage)
 [![npm version](https://img.shields.io/npm/v/%40axnic%2Fpulumi-garage.svg)](https://www.npmjs.com/package/@axnic/pulumi-garage)
 [![PyPI version](https://img.shields.io/pypi/v/pulumi_garage.svg)](https://pypi.org/project/pulumi_garage/)
-[![NuGet version](https://img.shields.io/nuget/v/Pulumi.Garage.svg)](https://www.nuget.org/packages/Pulumi.Garage/)
+[![NuGet version](https://img.shields.io/nuget/v/Axnic.Pulumi.Garage.svg)](https://www.nuget.org/packages/Axnic.Pulumi.Garage/)
 [![License](https://img.shields.io/github/license/axnic/pulumi-garage.svg)](LICENSE)
 
 # Pulumi Garage Provider
@@ -54,7 +54,7 @@ go get github.com/axnic/pulumi-garage/sdk/go/pulumi-garage
 ### .NET
 
 ```bash
-dotnet add package Pulumi.Garage
+dotnet add package Axnic.Pulumi.Garage
 ```
 
 The provider binary itself doesn't require any of the above - `pulumi plugin install

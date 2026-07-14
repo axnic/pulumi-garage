@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Garage
+namespace Axnic.Pulumi.Garage
 {
     [GarageResourceType("garage:index:Bucket")]
     public partial class Bucket : global::Pulumi.CustomResource

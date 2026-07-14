@@ -60,7 +60,7 @@ func Provider() p.Provider {
 				},
 			},
 			"csharp": map[string]any{
-				"rootNamespace":        "Pulumi",
+				"rootNamespace":        "Axnic.Pulumi",
 				"respectSchemaVersion": true,
 			},
 			"go": map[string]any{

@@ -57,7 +57,7 @@ registry-side setup described below - no GitHub secret to rotate or leak.
 | --- | --- | --- |
 | — (trusted publishing) | [npmjs.com](https://www.npmjs.com) | Node.js SDK (`@axnic/pulumi-garage`) |
 | `PYPI_API_TOKEN` | [PyPI](https://pypi.org) | Python SDK (`pulumi_garage`) |
-| `NUGET_USER` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Pulumi.Garage`) — trusted publishing, `NUGET_USER` is just the NuGet.org username, not a credential |
+| `NUGET_USER` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Axnic.Pulumi.Garage`) — trusted publishing, `NUGET_USER` is just the NuGet.org username, not a credential |
 
 ### Obtaining each secret
 
@@ -76,12 +76,29 @@ registry-side setup described below - no GitHub secret to rotate or leak.
   registry still using a stored secret.
 - **`NUGET_USER`** (trusted publishing) — on
   [NuGet.org](https://www.nuget.org), configure a Trusted Publishing policy
-  for the `Pulumi.Garage` package pointing at `axnic/pulumi-garage`'s
+  for the `Axnic.Pulumi.Garage` package pointing at `axnic/pulumi-garage`'s
   `push.release.yaml` workflow, then set `NUGET_USER` to your NuGet.org
   username (not a secret in the sensitive sense - it's just what the
   [`NuGet/login`](https://github.com/NuGet/login) action uses to look up
   the right trusted-publishing policy before exchanging this workflow's
   OIDC token for a short-lived API key at publish time).
+
+  The package was originally named `Pulumi.Garage`, matching the npm/PyPI
+  convention. That name never actually published: `dotnet nuget push`
+  reported "already exists" (a fast ~350ms 409, too quick to be real
+  content dedup) despite the package never appearing anywhere on NuGet
+  and nothing showing up in the account's own package list either. Best
+  read of the evidence: NuGet Trusted Publishing likely can't originate a
+  package ID that's never existed before - the short-lived OIDC-derived
+  key's scope may only cover pushing new *versions* of a package the
+  policy already recognizes. Renamed to `Axnic.Pulumi.Garage` to sidestep
+  the question entirely (and any possible collision with the `Pulumi.*`
+  prefix used by Pulumi's own official/partner providers). **Before the
+  first real release under this name**, either confirm NuGet Trusted
+  Publishing does support first-time package creation, or do a one-time
+  manual seed push with a regular NuGet API key to create the package,
+  after which trusted publishing should work normally for every
+  version after.
 
 ## Cutting a release
 

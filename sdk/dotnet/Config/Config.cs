@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Immutable;
 
-namespace Pulumi.Garage
+namespace Axnic.Pulumi.Garage
 {
     public static class Config
     {

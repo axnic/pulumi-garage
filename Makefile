@@ -4,7 +4,7 @@ PACK             := garage
 PACKDIR          := sdk
 PROJECT          := github.com/axnic/pulumi-garage
 NODE_MODULE_NAME := @axnic/pulumi-garage
-NUGET_PKG_NAME   := Pulumi.Garage
+NUGET_PKG_NAME   := Axnic.Pulumi.Garage
 
 PROVIDER        := pulumi-resource-${PACK}
 PROVIDER_PATH   := provider
