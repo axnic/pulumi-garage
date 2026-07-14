@@ -184,15 +184,36 @@ E2E_ADMIN_TOKEN := 131a3835a4f69caebd17d0d13f53b332eb44cf2aef6bd27b
 
 # test_e2e runs the example programs' full create/read/update/delete
 # lifecycle against a real, disposable, single-node Garage cluster started
-# with Docker. Requires Docker; see docker-compose.e2e.yml.
+# with Docker. Requires Docker; see docker-compose.yml. Pin a Garage release
+# with GARAGE_VERSION, e.g. `GARAGE_VERSION=v2.0.0 make test_e2e` (defaults
+# to docker-compose.yml's own default - see the Compatibility table in
+# README.md for which versions are verified in CI).
 .PHONY: test_e2e
 test_e2e:
-	docker compose -f docker-compose.e2e.yml up --detach --wait
+	docker compose -f docker-compose.yml up --detach --wait
+	GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) ./scripts/bootstrap-garage.sh
 	cd examples && GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) \
 		go test -v -tags=all -timeout 2h; \
 		status=$$?; \
-		docker compose -f ../docker-compose.e2e.yml down --volumes; \
+		docker compose -f ../docker-compose.yml down --volumes; \
 		exit $$status
+
+# dev-up/dev-down start and stop the same Garage cluster for interactive
+# local development (no automated teardown - it's left running for you to
+# point `pulumi up`, curl, or the examples at). See README.md's Local
+# development section.
+.PHONY: dev-up
+dev-up:
+	docker compose -f docker-compose.yml up --detach --wait
+	GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) ./scripts/bootstrap-garage.sh
+	@echo "Garage admin API:  http://localhost:3903"
+	@echo "Garage S3 API:     http://localhost:3900"
+	@echo "export GARAGE_ADMIN_ENDPOINT=http://localhost:3903"
+	@echo "export GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN)"
+
+.PHONY: dev-down
+dev-down:
+	docker compose -f docker-compose.yml down --volumes
 
 # Set these variables to enable signing of the windows binary with Azure Trusted Signing.
 AZURE_SIGNING_CLIENT_ID ?=

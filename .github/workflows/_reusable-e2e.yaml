@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# Reusable E2E job, parametrized by Garage version. Not triggered directly -
+# called by the per-version workflows (e2e-garage-*.yaml) so that each
+# Garage version gets its own independent workflow run and, in turn, its own
+# native GitHub Actions status badge (badges are per-workflow-file, not
+# per-matrix-leg, which is why this isn't just a `strategy.matrix` inside
+# one job - see README.md's Compatibility table for how the badges are used).
+
+name: Reusable E2E
+
+on:
+  workflow_call:
+    inputs:
+      garage-version:
+        description: 'Garage image tag to test against, e.g. "v2.3.0"'
+        required: true
+        type: string
+
+jobs:
+  e2e:
+    name: E2E (Garage ${{ inputs.garage-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Run E2E tests against Garage ${{ inputs.garage-version }}
+        env:
+          GARAGE_VERSION: ${{ inputs.garage-version }}
+        run: make test_e2e

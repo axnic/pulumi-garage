@@ -191,19 +191,95 @@ Tests are layered:
   example-lifecycle tests are skipped (via `t.Skip`) when
   `GARAGE_ADMIN_ENDPOINT` isn't set.
 - `make test_e2e` - spins up a real, disposable, single-node Garage cluster via
-  Docker Compose (`docker-compose.e2e.yml`, `dxflrs/garage:v2.3.0`), runs the
-  example programs' full create/update/delete lifecycle against it plus a real
-  S3 `PutObject`/`GetObject` round trip, then tears it down. Requires Docker.
+  Docker Compose (`docker-compose.yml`), runs the example programs' full
+  create/update/delete lifecycle against it plus a real S3
+  `PutObject`/`GetObject` round trip, then tears it down. Requires Docker.
+  Defaults to `dxflrs/garage:v2.3.0`; pin another version with
+  `GARAGE_VERSION`, e.g. `GARAGE_VERSION=v2.0.0 make test_e2e` - see
+  [Compatibility](#compatibility).
 - `make lint` - runs `golangci-lint`.
 
 CI (`.github/workflows/merge_group,pull_request,push.ci.yaml`) runs lint,
-commitlint, build, unit tests, and the full E2E suite on every pull request,
-merge-queue entry, and push to `main` - this repo takes commits directly on
-`main` without a PR, so the push trigger is what actually validates them.
+commitlint, build, and unit tests on every pull request, merge-queue entry,
+and push to `main` - this repo takes commits directly on `main` without a
+PR, so the push trigger is what actually validates them. The E2E suite runs
+separately, once per supported Garage version - see
+[Compatibility](#compatibility).
 
 The provider's Admin API client (`provider/internal/garageclient/`) is a
 hand-written, thin HTTP client, internal to the provider and not part of its
 public surface.
+
+## Compatibility
+
+This provider talks to Garage's Admin API v2, introduced in Garage v2.0.0.
+Each version below is tested against the full example-program lifecycle
+(create/update/delete plus a real S3 object upload/download) in its own CI
+workflow, so its badge reflects that version alone rather than an aggregate:
+
+| Garage version | Status |
+|---|---|
+| v2.0.0 | [![E2E (Garage v2.0.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.0.yaml) |
+| v2.1.0 | [![E2E (Garage v2.1.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.1.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.1.yaml) |
+| v2.2.0 | [![E2E (Garage v2.2.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.2.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.2.yaml) |
+| v2.3.0 | [![E2E (Garage v2.3.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.3.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.3.yaml) |
+
+Each workflow (`.github/workflows/merge_group,pull_request,push.e2e-garage-2.*.yaml`)
+is a thin wrapper calling the reusable `_reusable-e2e.yaml` job with that
+version pinned - GitHub Actions status badges are per-workflow-file, not
+per-matrix-leg, which is why this is four small files rather than one
+`strategy.matrix` job. `--single-node` (the fast layout-bootstrap path) only
+exists from Garage v2.3.0 onward, so `docker-compose.yml` and
+`scripts/bootstrap-garage.sh` always use the manual `layout assign`/`apply`
+bootstrap instead, which works identically across all four versions.
+
+## Local development
+
+### Devcontainer
+
+Open the repo in VS Code with the
+[Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+(or a GitHub Codespace) and "Reopen in Container" - everything is ready the
+moment it finishes building, no manual setup step:
+
+- Go, the Pulumi CLI, and everything else pinned in `.config/mise.toml` are
+  installed via the [mise feature](https://github.com/devcontainers-extra/features/tree/main/src/mise)
+  (`ghcr.io/devcontainers-extra/features/mise:1`) and `postCreateCommand`.
+- A single-node Garage instance (`.devcontainer/docker-compose.yml`) is
+  already running, sharing this container's network namespace
+  (`network_mode: service:garage`) and already bootstrapped, so
+  `http://localhost:3903` / `http://localhost:3900` just work.
+- `GARAGE_ADMIN_ENDPOINT` / `GARAGE_ADMIN_TOKEN` are already exported (see
+  the `dev` service's `environment:` block), and a starter S3 access key
+  named `dev` is created on first boot - its credentials are printed once in
+  the "Reopen in Container" log (`GARAGE_DEV_ACCESS_KEY_ID` /
+  `GARAGE_DEV_SECRET_ACCESS_KEY`). It isn't granted any bucket permissions
+  yet; wire it into a `BucketKeyPermission` as part of whatever you're
+  testing.
+
+`make lint` and `make test` work immediately - and because
+`GARAGE_ADMIN_ENDPOINT` is already set, `make test` runs the example
+lifecycle tests too (normally skipped without a live cluster), so it's a
+fuller check inside the devcontainer than outside it. `make dev-up` /
+`make test_e2e` also work, via a *separate*, disposable Garage stack (see
+[Without a devcontainer](#without-a-devcontainer)) reached through the
+`docker-outside-of-docker` feature - no port conflict with the always-on
+instance, since that one publishes no host ports of its own.
+
+### Without a devcontainer
+
+Any environment with Go, the Pulumi CLI, and Docker works:
+
+```
+make dev-up    # starts Garage and bootstraps its single-node layout, prints
+               # GARAGE_ADMIN_ENDPOINT / GARAGE_ADMIN_TOKEN to export
+pulumi up      # or: cd examples/yaml && pulumi up
+make dev-down  # tear it down when you're done
+```
+
+`make dev-up` is `make test_e2e`'s setup half, minus the automated test run
+and teardown - the cluster stays up until you `make dev-down` it. Pin a
+version the same way: `GARAGE_VERSION=v2.0.0 make dev-up`.
 
 ## Known limitations
 
@@ -212,8 +288,12 @@ This is a v1, personal/small-org provider - scope is intentionally narrow:
 - **No cluster layout management.** Assigning nodes, zones, and capacity is not
   managed by this provider; it's a one-shot bootstrap operation that doesn't fit
   cleanly into idempotent IaC. Bootstrap your Garage cluster yourself (e.g.
-  `garage layout assign`/`apply`, or `--single-node`) before pointing this
-  provider at it.
+  `garage layout assign`/`apply`, or `--single-node` on Garage v2.3.0+) before
+  pointing this provider at it. `scripts/bootstrap-garage.sh` (plain Admin API
+  calls, works against any reachable Garage - it's what bootstraps the
+  disposable dev/test cluster and the devcontainer's always-on one) is a
+  convenience for those fixtures, not something this provider does on your
+  behalf against a real cluster.
 - **`Bucket` supports only a single global alias.** No local (per-key) aliases,
   no multiple global aliases.
 - **`Key`'s global `createBucket` permission is not modelled**, deliberately -
@@ -237,8 +317,11 @@ Repo layout:
   (`provider/cmd/pulumi-resource-garage/`).
 - `sdk/` - the generated Go SDK (`make codegen`).
 - `examples/` - the YAML and Go example programs, and their lifecycle tests.
-- `docker-compose.e2e.yml`, `test/e2e/garage.toml` - the local/CI E2E fixture:
-  a disposable single-node Garage cluster with a fixed, test-only
-  `rpc_secret`/`admin_token` (not sensitive - the cluster is ephemeral and
-  local-only).
-- `Makefile` - build, codegen, lint, and test targets.
+- `docker-compose.yml`, `test/e2e/garage.toml`, `scripts/bootstrap-garage.sh` -
+  the local dev / CI E2E fixture: a disposable single-node Garage cluster with
+  a fixed, test-only `rpc_secret`/`admin_token` (not sensitive - the cluster
+  is ephemeral and local-only), and the script that bootstraps its layout.
+- `.devcontainer/` - VS Code / Codespaces dev environment (its own
+  `docker-compose.yml`, an always-on Garage instance), see
+  [Local development](#local-development).
+- `Makefile` - build, codegen, lint, test, and dev-cluster targets.

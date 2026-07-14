@@ -55,6 +55,13 @@ func TestConfigureExplicitFieldsTakePrecedenceOverEnv(t *testing.T) {
 }
 
 func TestConfigureFailsWithoutEndpoint(t *testing.T) {
+	// t.Setenv to "" (rather than leaving these ambient) so this passes
+	// regardless of the environment it runs in - e.g. the devcontainer sets
+	// both for its own always-on Garage instance, which would otherwise
+	// mask the "neither set" case this test exists to check.
+	t.Setenv(envAdminEndpoint, "")
+	t.Setenv(envAdminToken, "")
+
 	c := &Config{AdminToken: "some-token"}
 	err := c.Configure(context.Background())
 	require.Error(t, err)
@@ -62,6 +69,9 @@ func TestConfigureFailsWithoutEndpoint(t *testing.T) {
 }
 
 func TestConfigureFailsWithoutAdminToken(t *testing.T) {
+	t.Setenv(envAdminEndpoint, "")
+	t.Setenv(envAdminToken, "")
+
 	c := &Config{Endpoint: "http://localhost:3903"}
 	err := c.Configure(context.Background())
 	require.Error(t, err)

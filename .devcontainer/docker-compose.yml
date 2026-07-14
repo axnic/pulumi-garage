@@ -1,0 +1,43 @@
+# Devcontainer-only compose stack: a "dev" service (this repo, mounted, with
+# Go/Pulumi/etc provisioned via the mise devcontainer feature - see
+# devcontainer.json) sharing its network namespace with its own always-on
+# "garage" instance (network_mode: service:garage below), bootstrapped with a
+# single-node layout and a default access key as soon as the container is
+# created (see postCreate.sh) - so http://localhost:3903 already works, no
+# `make dev-up` needed.
+#
+# This is separate from the root docker-compose.yml (used by `make dev-up` /
+# `make test_e2e`, which need a *disposable* instance and work equally well
+# outside a devcontainer): this one is never torn down between sessions and
+# publishes no host ports of its own - network_mode: service:garage is what
+# makes localhost:3900/3903 resolve here, not a `ports:` mapping. Running
+# `make dev-up` / `make test_e2e` from inside the devcontainer still works
+# too, via the docker-outside-of-docker feature - that spins up a completely
+# separate, disposable stack against the host's real Docker daemon, so
+# there's no port conflict with this always-on one.
+services:
+  garage:
+    image: dxflrs/garage:${GARAGE_VERSION:-v2.3.0}
+    command: ["/garage", "server"]
+    volumes:
+      - ../test/e2e/garage.toml:/etc/garage.toml:ro
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 2s
+
+  dev:
+    image: mcr.microsoft.com/devcontainers/base:bookworm
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    network_mode: service:garage
+    depends_on:
+      garage:
+        condition: service_healthy
+    environment:
+      GARAGE_ADMIN_ENDPOINT: http://localhost:3903
+      GARAGE_ADMIN_TOKEN: 131a3835a4f69caebd17d0d13f53b332eb44cf2aef6bd27b
+      GARAGE_S3_ENDPOINT: http://localhost:3900

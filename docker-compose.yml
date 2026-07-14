@@ -1,0 +1,37 @@
+# Single-node Garage cluster, used two ways:
+#
+#   - Local development: `make dev-up` starts it and leaves it running so you
+#     can point `pulumi up` / the examples at it while you iterate; `make
+#     dev-down` tears it down when you're done.
+#   - Automated E2E testing: `make test_e2e` starts it, runs the example
+#     programs' full lifecycle against it (see examples/go_test.go,
+#     examples/yaml_test.go), then tears it down - see Makefile.
+#
+# Pin a specific Garage release with GARAGE_VERSION, e.g.:
+#
+#   GARAGE_VERSION=v2.0.0 make dev-up
+#
+# Defaults to the version this provider is primarily developed against. The
+# admin API v2 this provider talks to was introduced in Garage v2.0.0; see
+# the Compatibility table in README.md for which versions are verified in CI
+# (each pinned to its own workflow so its badge reflects that version alone).
+#
+# The single-node cluster layout is NOT bootstrapped automatically here -
+# `--single-node` only exists from Garage v2.3.0 onward, and this matrix
+# tests back to v2.0.0. Run scripts/bootstrap-garage.sh after `up --wait`
+# (both `make dev-up` and `make test_e2e` already do this for you).
+services:
+  garage:
+    image: dxflrs/garage:${GARAGE_VERSION:-v2.3.0}
+    command: ["/garage", "server"]
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+    volumes:
+      - ./test/e2e/garage.toml:/etc/garage.toml:ro
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 2s

@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# E2E against Garage v2.3.0 (the version this provider is primarily
+# developed against - see docker-compose.yml's default) - see README.md's
+# Compatibility table. Thin wrapper around _reusable-e2e.yaml; kept as its
+# own file (rather than a matrix leg) so it gets its own status badge.
+
+name: E2E (Garage v2.3.0)
+
+on:
+  merge_group: {}
+  pull_request: {}
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  e2e:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_reusable-e2e.yaml
+    with:
+      garage-version: v2.3.0
