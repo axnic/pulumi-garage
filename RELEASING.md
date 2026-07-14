@@ -22,10 +22,15 @@ which:
    versioning rule for modules living in a subdirectory of a repo — see
    [go.dev/ref/mod#vcs-version](https://go.dev/ref/mod#vcs-version)).
 3. Publishes the other 4 SDKs (nodejs, python, dotnet, java) to their
-   respective registries. **Each is independently gated on its own secret(s)
-   being configured** — a registry you haven't onboarded yet is silently
-   skipped, not failed, so you can cut binary-only releases before any
-   registry is set up, and onboard registries one at a time afterwards.
+   respective registries. **PyPI and Java are gated on their secrets being
+   configured** — skipped, not failed, if you haven't onboarded them yet, so
+   you can cut binary-only releases before every registry is wired up. npm
+   and NuGet use trusted publishing instead of a stored secret, so those two
+   steps always run rather than being skippable this way - see
+   [Required secrets](#required-secrets) below. In practice, onboard npm and
+   NuGet's registry-side trusted-publisher policies *before* the first tag
+   that's meant to reach them, otherwise that step fails loudly instead of
+   quietly skipping.
 
 A tag with a prerelease segment (`-alpha.1`, `-beta.2`, ...) is automatically
 marked as a prerelease on GitHub (`release.prerelease: auto` in
@@ -36,27 +41,43 @@ marked as a prerelease on GitHub (`release.prerelease: auto` in
 
 Configure these as [repository secrets](https://github.com/axnic/pulumi-garage/settings/secrets/actions).
 None are required to release the provider binary itself — only to publish
-the corresponding language SDK.
+the corresponding language SDK. npm and NuGet no longer need a stored
+long-lived token at all — they publish via each registry's OIDC-based
+*trusted publishing*, which exchanges this workflow's own identity for a
+short-lived credential at publish time. That needs `permissions: id-token:
+write` on the `publish-sdks` job (already set in
+[`push.release.yaml`](.github/workflows/push.release.yaml)) plus a one-time
+registry-side setup described below - no GitHub secret to rotate or leak.
 
 | Secret | Registry | Used by |
 | --- | --- | --- |
-| `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) | Node.js SDK (`@axnic/pulumi-garage`) |
+| — (trusted publishing) | [npmjs.com](https://www.npmjs.com) | Node.js SDK (`@axnic/pulumi-garage`) |
 | `PYPI_API_TOKEN` | [PyPI](https://pypi.org) | Python SDK (`pulumi_garage`) |
-| `NUGET_API_KEY` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Pulumi.Garage`) |
+| `NUGET_USER` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Pulumi.Garage`) — trusted publishing, `NUGET_USER` is just the NuGet.org username, not a credential |
 | `PUBLISH_REPO_USERNAME`, `PUBLISH_REPO_PASSWORD` | [Maven Central / Sonatype](https://central.sonatype.com) | Java SDK (`com.axnic.pulumi:pulumi-garage`) |
 | `SIGNING_KEY`, `SIGNING_PASSWORD` | GPG signing | Java SDK — Maven Central rejects unsigned artifacts |
 
 ### Obtaining each secret
 
-- **`NPM_TOKEN`** — create an npm [Automation
-  token](https://docs.npmjs.com/creating-and-viewing-access-tokens) scoped to
-  the `@axnic` org, with publish access.
+- **npm (no secret — trusted publishing)** — on the `@axnic/pulumi-garage`
+  package's [npmjs.com](https://www.npmjs.com) settings page, under
+  *Trusted Publisher*, add a GitHub Actions publisher pointing at
+  `axnic/pulumi-garage`, workflow file `push.release.yaml`. Requires npm CLI
+  ≥ 11.5.1 (the mise-pinned Node.js version already ships a newer one - see
+  `.config/mise.toml`) and the workflow's `id-token: write` permission,
+  which is what lets `npm publish --provenance` mint the OIDC-backed
+  credential instead of reading `NODE_AUTH_TOKEN`.
 - **`PYPI_API_TOKEN`** — create a [PyPI API
   token](https://pypi.org/help/#apitoken) scoped to the `pulumi_garage`
   project (or your account, before the project exists yet).
-- **`NUGET_API_KEY`** — create a [NuGet API
-  key](https://learn.microsoft.com/en-us/nuget/nuget-org/publish-a-package#create-api-keys)
-  scoped to the `Pulumi.Garage` package.
+- **`NUGET_USER`** (trusted publishing) — on
+  [NuGet.org](https://www.nuget.org), configure a Trusted Publishing policy
+  for the `Pulumi.Garage` package pointing at `axnic/pulumi-garage`'s
+  `push.release.yaml` workflow, then set `NUGET_USER` to your NuGet.org
+  username (not a secret in the sensitive sense - it's just what the
+  [`NuGet/login`](https://github.com/NuGet/login) action uses to look up
+  the right trusted-publishing policy before exchanging this workflow's
+  OIDC token for a short-lived API key at publish time).
 - **`PUBLISH_REPO_USERNAME` / `PUBLISH_REPO_PASSWORD`** — register a
   [Sonatype Central account](https://central.sonatype.com/) and claim the
   `com.axnic.pulumi` namespace (requires proving control of the `axnic`
@@ -88,8 +109,10 @@ the corresponding language SDK.
    For a prerelease: `git tag v1.0.0-alpha.1`.
 3. Watch the [`Release` workflow
    run](https://github.com/axnic/pulumi-garage/actions/workflows/push.release.yaml).
-   The GitHub Release itself (provider binaries) always runs; the SDK
-   publish steps run only for the registries you've configured secrets for.
+   The GitHub Release itself (provider binaries) always runs. npm and NuGet
+   always attempt to publish (trusted publishing, no secret gate); PyPI and
+   the Java SDK publish steps run only for the registries you've configured
+   secrets for - see [Required secrets](#required-secrets).
 4. Verify: `pulumi plugin install resource garage <version>` (or let `pulumi
    up` resolve it automatically from the provider's `pluginDownloadURL`),
    and check the registries you published to for the new package version.
