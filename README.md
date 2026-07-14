@@ -233,6 +233,32 @@ exists from Garage v2.3.0 onward, so `docker-compose.yml` and
 `scripts/bootstrap-garage.sh` always use the manual `layout assign`/`apply`
 bootstrap instead, which works identically across all four versions.
 
+## Local development
+
+### Devcontainer
+
+`.devcontainer/` provisions Go, the Pulumi CLI, and everything else pinned in
+`.config/mise.toml` (via `mise install`), plus Docker access, in a VS Code /
+GitHub Codespaces container. Open the repo in VS Code with the
+[Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+and "Reopen in Container" - `make test`, `make lint`, and `make test_e2e` all
+work out of the box once it's built.
+
+### Without a devcontainer
+
+Any environment with Go, the Pulumi CLI, and Docker works:
+
+```
+make dev-up    # starts Garage and bootstraps its single-node layout, prints
+               # GARAGE_ADMIN_ENDPOINT / GARAGE_ADMIN_TOKEN to export
+pulumi up      # or: cd examples/yaml && pulumi up
+make dev-down  # tear it down when you're done
+```
+
+`make dev-up` is `make test_e2e`'s setup half, minus the automated test run
+and teardown - the cluster stays up until you `make dev-down` it. Pin a
+version the same way: `GARAGE_VERSION=v2.0.0 make dev-up`.
+
 ## Known limitations
 
 This is a v1, personal/small-org provider - scope is intentionally narrow:
@@ -271,4 +297,6 @@ Repo layout:
   the local dev / CI E2E fixture: a disposable single-node Garage cluster with
   a fixed, test-only `rpc_secret`/`admin_token` (not sensitive - the cluster
   is ephemeral and local-only), and the script that bootstraps its layout.
-- `Makefile` - build, codegen, lint, and test targets.
+- `.devcontainer/` - VS Code / Codespaces dev environment, see
+  [Local development](#local-development).
+- `Makefile` - build, codegen, lint, test, and dev-cluster targets.

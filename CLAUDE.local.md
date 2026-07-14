@@ -15,7 +15,7 @@
 ## Style by Type
 | Type | Format | Tone | Example File |
 |------|--------|------|--------------|
-| README | H2 sections: Prerequisites/Quickstart/Resource reference/Provider config/Dev & testing/Compatibility/Known limitations/Additional details | Terse, no marketing fluff, no emojis | README.md |
+| README | H2 sections: Prerequisites/Quickstart/Resource reference/Provider config/Dev & testing/Compatibility/Local development/Known limitations/Additional details | Terse, no marketing fluff, no emojis | README.md |
 | Go doc comments (Annotate) | Full sentences, authoritative field descriptions, quoted verbatim in README | Precise/technical | provider/*.go Annotate() methods |
 | Makefile/CI comments | Short imperative comments above targets | Terse | Makefile, .github/workflows/*.yaml |
 
@@ -49,3 +49,14 @@
   make test_e2e`) — `--single-node` only exists from Garage v2.3.0 onward, so
   the bootstrap script always does the manual `layout assign`/`apply` dance,
   which is what actually makes this version-agnostic.
+- Local dev: `docker-compose.yml` (renamed from docker-compose.e2e.yml — it now
+  serves both `make test_e2e` and interactive dev via `make dev-up`/`make
+  dev-down`) plus `.devcontainer/` (Dockerfile + devcontainer.json, provisions
+  tools via `mise trust && mise install` against the repo's own mise config, so
+  versions always match CI). Devcontainer gotcha worth knowing: `.config/mise.toml`
+  pulls in the vfox-pulumi community plugin, which mise re-resolves on every
+  invocation once the workspace is mounted — including a first `mise install`
+  itself — so the plugin has to be pre-installed at image build time, from a
+  directory with no mise config in scope (`cd /tmp && mise plugins install
+  vfox-pulumi ...`), or every `mise` command in the workspace fails with
+  "plugin not installed" no matter what you run.

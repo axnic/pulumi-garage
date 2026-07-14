@@ -1,0 +1,28 @@
+{
+  "name": "pulumi-garage",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    // Gives the container a `docker`/`docker compose` CLI wired to the
+    // *host's* Docker daemon (sibling containers, not nested) - needed for
+    // `make dev-up` / `make test_e2e`, which drive docker-compose.yml.
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "postCreateCommand": "mise trust && mise install",
+  "forwardPorts": [3900, 3903],
+  "portsAttributes": {
+    "3900": { "label": "Garage S3 API" },
+    "3903": { "label": "Garage Admin API" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

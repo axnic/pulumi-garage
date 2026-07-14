@@ -198,6 +198,23 @@ test_e2e:
 		docker compose -f ../docker-compose.yml down --volumes; \
 		exit $$status
 
+# dev-up/dev-down start and stop the same Garage cluster for interactive
+# local development (no automated teardown - it's left running for you to
+# point `pulumi up`, curl, or the examples at). See README.md's Local
+# development section.
+.PHONY: dev-up
+dev-up:
+	docker compose -f docker-compose.yml up --detach --wait
+	./scripts/bootstrap-garage.sh docker-compose.yml
+	@echo "Garage admin API:  http://localhost:3903"
+	@echo "Garage S3 API:     http://localhost:3900"
+	@echo "export GARAGE_ADMIN_ENDPOINT=http://localhost:3903"
+	@echo "export GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN)"
+
+.PHONY: dev-down
+dev-down:
+	docker compose -f docker-compose.yml down --volumes
+
 # Set these variables to enable signing of the windows binary with Azure Trusted Signing.
 AZURE_SIGNING_CLIENT_ID ?=
 AZURE_SIGNING_CLIENT_SECRET ?=
