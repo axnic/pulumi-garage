@@ -78,14 +78,20 @@ jobs:
   publish-sdks:
     name: Publish SDKs
     runs-on: ubuntu-latest
+    # id-token: write is required for npm's and NuGet's OIDC-based trusted
+    # publishing (both exchange this workflow's OIDC token for a short-lived
+    # publish credential instead of a stored secret) - see RELEASING.md.
+    permissions:
+      contents: read
+      id-token: write
     # `if:` conditions can't reference the `secrets` context directly
     # ("Unrecognized named-value: 'secrets'") - only `env:` can, so each
     # registry's "is it configured" check is computed here once and read
     # back via `env.HAS_*` in the steps below.
     env:
-      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+      HAS_NPM_TOKEN: "true" # npm uses trusted publishers, so we always have a token for it (see RELEASING.md)
       HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
-      HAS_NUGET_KEY: ${{ secrets.NUGET_API_KEY != '' }}
+      HAS_NUGET_KEY: "true" # NuGet uses OIDC, so we always can generate a key for it (see RELEASING.md)
       HAS_MAVEN_CREDS: ${{ secrets.SIGNING_KEY != '' && secrets.PUBLISH_REPO_USERNAME != '' }}
     steps:
       - name: Checkout repository
@@ -115,12 +121,10 @@ jobs:
           # npm refuses to publish a prerelease version (contains "-") to
           # the default "latest" tag - verified by trying it.
           if [[ "${{ steps.version.outputs.version }}" == *-* ]]; then
-            npm publish --access public --tag next
+            npm publish --access public --tag next --provenance
           else
-            npm publish --access public
+            npm publish --access public --provenance
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # --- Python / PyPI -------------------------------------------------
       - name: Build Python SDK
@@ -144,11 +148,18 @@ jobs:
         if: ${{ env.HAS_NUGET_KEY == 'true' }}
         run: make dotnet_sdk PROVIDER_VERSION="${{ steps.version.outputs.version }}"
 
+      - name: Login to NuGet (OIDC → temp API key)
+        if: ${{ env.HAS_NUGET_KEY == 'true' }}
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        id: nuget_login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Publish to NuGet
         if: ${{ env.HAS_NUGET_KEY == 'true' }}
         run: |
           dotnet nuget push "sdk/dotnet/bin/Debug/*.nupkg" \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
