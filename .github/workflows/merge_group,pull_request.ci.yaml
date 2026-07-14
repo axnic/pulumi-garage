@@ -1,0 +1,102 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# CI — Pull-request & merge-queue quality gate
+#
+# Triggered by merge_group and pull_request events.
+#
+# What it does:
+#   1. Runs golangci-lint on Go provider code
+#   2. Validates Conventional Commits on every PR commit
+#   3. Builds the provider binary via make provider
+#   4. Runs provider unit tests via make test
+
+name: PR & Merge-Queue Quality Gate
+
+on:
+  merge_group: {}
+  pull_request: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Run golangci-lint
+        run: make lint
+
+  commitlint:
+    name: Commit Messages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Validate commit messages
+        run: |
+          commitlint \
+            --from ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }} \
+            --to   ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }} \
+            --verbose
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Build provider
+        run: make provider
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Run provider tests
+        run: make test

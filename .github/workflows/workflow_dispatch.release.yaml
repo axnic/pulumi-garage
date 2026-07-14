@@ -1,0 +1,172 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# Release — create a versioned release from the GitHub UI
+#
+# Triggered manually via Actions → Release → Run workflow.
+#
+# What it does:
+#   1. Computes the next version automatically from the last git tag
+#   2. Runs tests and build
+#   3. Creates and pushes a v<version> git tag
+#   4. Opens a GitHub Release (--prerelease for RC, --latest for stable)
+#
+# Bump types:
+#   patch / minor / major   → stable release computed from the last stable tag
+#   rc-patch / rc-minor / rc-major → release candidate; increments the RC
+#                             counter if one already exists for the target
+#
+# Release note scope:
+#   RC     → commits since the last tag (RC or stable)
+#   stable → commits since the last stable (non-RC) tag, so RC commits
+#            are included in the final release summary
+#
+# Publishing to registry is handled by workflow_run.publish.yaml, triggered
+# automatically when this release is published.
+#
+# Prerequisites:
+#   CI_APP_ID and CI_APP_PRIVATE_KEY secrets must be set for the axnic-bot
+#   GitHub App. The app is a bypass actor in the branch ruleset, so it can
+#   push unsigned commits directly to main even when required_signatures is on.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - rc-patch
+          - rc-minor
+          - rc-major
+      notes:
+        description: Release notes (leave blank for auto-generated)
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  release:
+    name: Create release (${{ inputs.bump }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Generate CI app token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Compute next version and changelog range
+        id: version
+        run: |
+          BUMP="${{ inputs.bump }}"
+          ALL_TAGS=$(git tag -l 'v[0-9]*' --sort=-version:refname)
+          LAST_STABLE=$(printf '%s\n' "$ALL_TAGS" | grep -v -- '-rc\.' | head -1)
+          LAST_TAG=$(printf '%s\n' "$ALL_TAGS" | head -1)
+          [[ -z "$LAST_STABLE" ]] && LAST_STABLE="v0.0.0"
+          [[ -z "$LAST_TAG" ]]    && LAST_TAG="v0.0.0"
+
+          VER="${LAST_STABLE#v}"
+          MAJOR="${VER%%.*}"; REST="${VER#*.}"; MINOR="${REST%%.*}"; PATCH="${REST#*.}"
+
+          compute_rc() {
+            local target="$1"
+            local existing
+            existing=$(printf '%s\n' "$ALL_TAGS" | grep "^v${target}-rc\." | head -1)
+            if [[ -n "$existing" ]]; then
+              local n; n=$(printf '%s' "$existing" | grep -oE '[0-9]+$')
+              printf '%s-rc.%d' "$target" "$((n + 1))"
+            else
+              printf '%s-rc.1' "$target"
+            fi
+          }
+
+          case "$BUMP" in
+            patch)    NEW_VER="${MAJOR}.${MINOR}.$((PATCH + 1))"                ; PREV_TAG="$LAST_STABLE" ;;
+            minor)    NEW_VER="${MAJOR}.$((MINOR + 1)).0"                       ; PREV_TAG="$LAST_STABLE" ;;
+            major)    NEW_VER="$((MAJOR + 1)).0.0"                              ; PREV_TAG="$LAST_STABLE" ;;
+            rc-patch) NEW_VER=$(compute_rc "${MAJOR}.${MINOR}.$((PATCH + 1))") ; PREV_TAG="$LAST_TAG" ;;
+            rc-minor) NEW_VER=$(compute_rc "${MAJOR}.$((MINOR + 1)).0")         ; PREV_TAG="$LAST_TAG" ;;
+            rc-major) NEW_VER=$(compute_rc "$((MAJOR + 1)).0.0")                ; PREV_TAG="$LAST_TAG" ;;
+          esac
+
+          { echo "version=${NEW_VER}"; echo "prev_tag=${PREV_TAG}"; } >> "$GITHUB_OUTPUT"
+          echo "::notice::New version: v${NEW_VER}"
+
+      - name: Build and test
+        run: |
+          make provider
+          make test
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "axnic[bot]"
+          git config user.email "axnic[bot]@users.noreply.github.com"
+
+      - name: Commit version bump
+        run: |
+          git add -A
+          git commit -m "chore(tooling): Bump version to v${{ steps.version.outputs.version }}" --allow-empty
+
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Generate release notes
+        run: |
+          PREV="${{ steps.version.outputs.prev_tag }}"
+          RANGE="${PREV}..HEAD"
+          [[ "$PREV" == "v0.0.0" ]] && RANGE="HEAD"
+
+          if [[ -n "${{ inputs.notes }}" ]]; then
+            cat > release-notes.md << 'NOTES_EOF'
+          ${{ inputs.notes }}
+          NOTES_EOF
+          else
+            git log --first-parent --format="- %s (%an)" "$RANGE" > release-notes.md
+            echo "" >> release-notes.md
+            echo "## What to verify" >> release-notes.md
+            echo "- \`make provider\` builds successfully" >> release-notes.md
+            echo "- \`make test\` passes" >> release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        run: |
+          VERSION="v${{ steps.version.outputs.version }}"
+          if [[ "$VERSION" == *"-rc."* ]]; then
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file release-notes.md \
+              --prerelease \
+              --draft
+          else
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file release-notes.md \
+              --draft
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}

@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# Publish provider — build and publish via goreleaser
+#
+# Triggered automatically when the Release workflow completes successfully.
+#
+# What it does:
+#   1. Resolves the release tag from the triggering workflow
+#   2. Builds and publishes provider binaries via goreleaser
+#   3. Publishes the GitHub Release (removes draft or prerelease status)
+#
+# Required environment: "release" (deployment gate / protection rules)
+
+name: Publish provider
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: goreleaser-publish-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-tag:
+    name: Resolve release tag
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          HEAD="${{ github.event.workflow_run.head_sha }}"
+          git fetch --tags origin
+          TAG=$(git tag -l 'v[0-9]*' \
+            | while read -r t; do
+                tag_commit=$(git rev-parse "${t}^{}" 2>/dev/null) || continue
+                parent=$(git rev-parse "${tag_commit}^1" 2>/dev/null) || continue
+                if [[ "$parent" == "$HEAD" ]]; then
+                  echo "$t"; break
+                fi
+              done)
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No release tag found whose version-bump commit has $HEAD as its parent."
+            exit 1
+          fi
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Build and publish
+    needs: resolve-tag
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: false
+
+      - name: Build and publish with goreleaser
+        uses: goreleaser/goreleaser-action@915a717917072e39e10f43b5153a0c919d41f4e1 # v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub Release
+        run: |
+          TAG="${{ needs.resolve-tag.outputs.tag }}"
+          if [[ "$TAG" == *"-rc."* ]]; then
+            gh release edit "$TAG" --draft=false --prerelease
+          else
+            gh release edit "$TAG" --draft=false --latest
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
