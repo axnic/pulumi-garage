@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Pulumi Corp.</Authors>
@@ -48,8 +47,7 @@
     <PackageReference Include="Pulumi" Version="[3.76.1.0,4)" />
   </ItemGroup>
 
-  <ItemGroup>
-  </ItemGroup>
+  <ItemGroup></ItemGroup>
 
   <ItemGroup>
     <None Include="logo.png">
@@ -57,5 +55,4 @@
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
-
 </Project>

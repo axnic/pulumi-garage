@@ -19,17 +19,24 @@ namespace Pulumi.ProviderBoilerplate
         /// <param name="name">The unique name of the resource</param>
         /// <param name="args">The arguments used to populate this resource's properties</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
-        public Provider(string name, ProviderArgs? args = null, CustomResourceOptions? options = null)
-            : base("provider-boilerplate", name, args ?? new ProviderArgs(), MakeResourceOptions(options, ""))
-        {
-        }
+        public Provider(
+            string name,
+            ProviderArgs? args = null,
+            CustomResourceOptions? options = null
+        )
+            : base(
+                "provider-boilerplate",
+                name,
+                args ?? new ProviderArgs(),
+                MakeResourceOptions(options, "")
+            ) { }
 
-        private static CustomResourceOptions MakeResourceOptions(CustomResourceOptions? options, Input<string>? id)
+        private static CustomResourceOptions MakeResourceOptions(
+            CustomResourceOptions? options,
+            Input<string>? id
+        )
         {
-            var defaultOptions = new CustomResourceOptions
-            {
-                Version = Utilities.Version,
-            };
+            var defaultOptions = new CustomResourceOptions { Version = Utilities.Version };
             var merged = CustomResourceOptions.Merge(defaultOptions, options);
             // Override the ID if one was specified for consistency with other language SDKs.
             merged.Id = id ?? merged.Id;
@@ -42,9 +49,8 @@ namespace Pulumi.ProviderBoilerplate
         [Input("itsasecret", json: true)]
         public Input<bool>? Itsasecret { get; set; }
 
-        public ProviderArgs()
-        {
-        }
+        public ProviderArgs() { }
+
         public static new ProviderArgs Empty => new ProviderArgs();
     }
 }

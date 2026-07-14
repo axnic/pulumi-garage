@@ -3,8 +3,10 @@
 # *** Do not edit by hand unless you're certain you know what you are doing! ***
 
 import builtins as _builtins
-from . import _utilities
 import typing
+
+from . import _utilities
+
 # Export this package's modules as members:
 from .provider import *
 from .random import *
@@ -13,9 +15,10 @@ from .random_component import *
 # Make subpackages available:
 if typing.TYPE_CHECKING:
     import pulumi_provider_boilerplate.config as __config
+
     config = __config
 else:
-    config = _utilities.lazy_import('pulumi_provider_boilerplate.config')
+    config = _utilities.lazy_import("pulumi_provider_boilerplate.config")
 
 _utilities.register(
     resource_modules="""
@@ -40,5 +43,5 @@ _utilities.register(
   "class": "Provider"
  }
 ]
-"""
+""",
 )

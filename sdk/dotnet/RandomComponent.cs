@@ -18,7 +18,6 @@ namespace Pulumi.ProviderBoilerplate
         [Output("password")]
         public Output<string> Password { get; private set; } = null!;
 
-
         /// <summary>
         /// Create a RandomComponent resource with the given unique name, arguments, and options.
         /// </summary>
@@ -26,17 +25,25 @@ namespace Pulumi.ProviderBoilerplate
         /// <param name="name">The unique name of the resource</param>
         /// <param name="args">The arguments used to populate this resource's properties</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
-        public RandomComponent(string name, RandomComponentArgs args, ComponentResourceOptions? options = null)
-            : base("provider-boilerplate:index:RandomComponent", name, args ?? new RandomComponentArgs(), MakeResourceOptions(options, ""), remote: true)
-        {
-        }
+        public RandomComponent(
+            string name,
+            RandomComponentArgs args,
+            ComponentResourceOptions? options = null
+        )
+            : base(
+                "provider-boilerplate:index:RandomComponent",
+                name,
+                args ?? new RandomComponentArgs(),
+                MakeResourceOptions(options, ""),
+                remote: true
+            ) { }
 
-        private static ComponentResourceOptions MakeResourceOptions(ComponentResourceOptions? options, Input<string>? id)
+        private static ComponentResourceOptions MakeResourceOptions(
+            ComponentResourceOptions? options,
+            Input<string>? id
+        )
         {
-            var defaultOptions = new ComponentResourceOptions
-            {
-                Version = Utilities.Version,
-            };
+            var defaultOptions = new ComponentResourceOptions { Version = Utilities.Version };
             var merged = ComponentResourceOptions.Merge(defaultOptions, options);
             // Override the ID if one was specified for consistency with other language SDKs.
             merged.Id = id ?? merged.Id;
@@ -49,9 +56,8 @@ namespace Pulumi.ProviderBoilerplate
         [Input("length", required: true)]
         public Input<int> Length { get; set; } = null!;
 
-        public RandomComponentArgs()
-        {
-        }
+        public RandomComponentArgs() { }
+
         public static new RandomComponentArgs Empty => new RandomComponentArgs();
     }
 }

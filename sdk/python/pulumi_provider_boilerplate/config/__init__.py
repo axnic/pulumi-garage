@@ -4,6 +4,7 @@
 
 import builtins as _builtins
 import sys
+
 from .vars import _ExportableConfig
 
 sys.modules[__name__].__class__ = _ExportableConfig

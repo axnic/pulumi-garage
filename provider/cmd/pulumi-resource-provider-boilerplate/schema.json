@@ -52,18 +52,13 @@
           "type": "string"
         }
       },
-      "required": [
-        "length",
-        "result"
-      ],
+      "required": ["length", "result"],
       "inputProperties": {
         "length": {
           "type": "integer"
         }
       },
-      "requiredInputs": [
-        "length"
-      ]
+      "requiredInputs": ["length"]
     },
     "provider-boilerplate:index:RandomComponent": {
       "properties": {
@@ -74,18 +69,13 @@
           "type": "string"
         }
       },
-      "required": [
-        "length",
-        "password"
-      ],
+      "required": ["length", "password"],
       "inputProperties": {
         "length": {
           "type": "integer"
         }
       },
-      "requiredInputs": [
-        "length"
-      ],
+      "requiredInputs": ["length"],
       "isComponent": true
     }
   }

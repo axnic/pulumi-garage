@@ -3,24 +3,23 @@
 # *** Do not edit by hand unless you're certain you know what you are doing! ***
 
 import builtins as _builtins
-import warnings
 import sys
+from typing import Optional
+
 import pulumi
 import pulumi.runtime
-from typing import Any, Mapping, Optional, Sequence, Union, overload
+
 if sys.version_info >= (3, 11):
-    from typing import NotRequired, TypedDict, TypeAlias
+    pass
 else:
-    from typing_extensions import NotRequired, TypedDict, TypeAlias
-from .. import _utilities
+    pass
 
 import types
 
-__config__ = pulumi.Config('provider-boilerplate')
+__config__ = pulumi.Config("provider-boilerplate")
 
 
 class _ExportableConfig(types.ModuleType):
     @_builtins.property
     def itsasecret(self) -> Optional[bool]:
-        return __config__.get_bool('itsasecret')
-
+        return __config__.get_bool("itsasecret")

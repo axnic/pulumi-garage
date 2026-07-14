@@ -20,6 +20,7 @@ namespace Pulumi.ProviderBoilerplate
 
         static string[] trueValues = { "1", "t", "T", "true", "TRUE", "True" };
         static string[] falseValues = { "0", "f", "F", "false", "FALSE", "False" };
+
         public static bool? GetEnvBoolean(params string[] names)
         {
             var s = GetEnv(names);
@@ -37,40 +38,57 @@ namespace Pulumi.ProviderBoilerplate
             return null;
         }
 
-        public static int? GetEnvInt32(params string[] names) => int.TryParse(GetEnv(names), out int v) ? (int?)v : null;
+        public static int? GetEnvInt32(params string[] names) =>
+            int.TryParse(GetEnv(names), out int v) ? (int?)v : null;
 
-        public static double? GetEnvDouble(params string[] names) => double.TryParse(GetEnv(names), out double v) ? (double?)v : null;
+        public static double? GetEnvDouble(params string[] names) =>
+            double.TryParse(GetEnv(names), out double v) ? (double?)v : null;
 
         [global::System.Obsolete("Please use WithDefaults instead")]
-        public static global::Pulumi.InvokeOptions WithVersion(this global::Pulumi.InvokeOptions? options)
+        public static global::Pulumi.InvokeOptions WithVersion(
+            this global::Pulumi.InvokeOptions? options
+        )
         {
-            var dst = options ?? new global::Pulumi.InvokeOptions{};
+            var dst = options ?? new global::Pulumi.InvokeOptions { };
             dst.Version = options?.Version ?? Version;
             return dst;
         }
 
-        public static global::Pulumi.InvokeOptions WithDefaults(this global::Pulumi.InvokeOptions? src)
+        public static global::Pulumi.InvokeOptions WithDefaults(
+            this global::Pulumi.InvokeOptions? src
+        )
         {
-            var dst = src ?? new global::Pulumi.InvokeOptions{};
+            var dst = src ?? new global::Pulumi.InvokeOptions { };
             dst.Version = src?.Version ?? Version;
             return dst;
         }
 
-        public static global::Pulumi.InvokeOutputOptions WithDefaults(this global::Pulumi.InvokeOutputOptions? src)
+        public static global::Pulumi.InvokeOutputOptions WithDefaults(
+            this global::Pulumi.InvokeOutputOptions? src
+        )
         {
-            var dst = src ?? new global::Pulumi.InvokeOutputOptions{};
+            var dst = src ?? new global::Pulumi.InvokeOutputOptions { };
             dst.Version = src?.Version ?? Version;
             return dst;
         }
 
-        private readonly static string version;
+        private static readonly string version;
         public static string Version => version;
 
         static Utilities()
         {
-            var assembly = global::System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(Utilities)).Assembly;
-            using var stream = assembly.GetManifestResourceStream("Pulumi.ProviderBoilerplate.version.txt");
-            using var reader = new global::System.IO.StreamReader(stream ?? throw new global::System.NotSupportedException("Missing embedded version.txt file"));
+            var assembly = global::System
+                .Reflection.IntrospectionExtensions.GetTypeInfo(typeof(Utilities))
+                .Assembly;
+            using var stream = assembly.GetManifestResourceStream(
+                "Pulumi.ProviderBoilerplate.version.txt"
+            );
+            using var reader = new global::System.IO.StreamReader(
+                stream
+                    ?? throw new global::System.NotSupportedException(
+                        "Missing embedded version.txt file"
+                    )
+            );
             version = reader.ReadToEnd().Trim();
             var parts = version.Split("\n");
             if (parts.Length == 2)
@@ -81,10 +99,10 @@ namespace Pulumi.ProviderBoilerplate
         }
     }
 
-    internal sealed class ProviderBoilerplateResourceTypeAttribute : global::Pulumi.ResourceTypeAttribute
+    internal sealed class ProviderBoilerplateResourceTypeAttribute
+        : global::Pulumi.ResourceTypeAttribute
     {
-        public ProviderBoilerplateResourceTypeAttribute(string type) : base(type, Utilities.Version)
-        {
-        }
+        public ProviderBoilerplateResourceTypeAttribute(string type)
+            : base(type, Utilities.Version) { }
     }
 }

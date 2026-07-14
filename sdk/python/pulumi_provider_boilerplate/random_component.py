@@ -3,23 +3,25 @@
 # *** Do not edit by hand unless you're certain you know what you are doing! ***
 
 import builtins as _builtins
-import warnings
 import sys
+from typing import Optional, overload
+
 import pulumi
 import pulumi.runtime
-from typing import Any, Mapping, Optional, Sequence, Union, overload
+
 if sys.version_info >= (3, 11):
-    from typing import NotRequired, TypedDict, TypeAlias
+    pass
 else:
-    from typing_extensions import NotRequired, TypedDict, TypeAlias
+    pass
+
 from . import _utilities
 
-__all__ = ['RandomComponentArgs', 'RandomComponent']
+__all__ = ["RandomComponentArgs", "RandomComponent"]
+
 
 @pulumi.input_type
 class RandomComponentArgs:
-    def __init__(__self__, *,
-                 length: pulumi.Input[_builtins.int]):
+    def __init__(__self__, *, length: pulumi.Input[_builtins.int]):
         """
         The set of arguments for constructing a RandomComponent resource.
         """
@@ -38,22 +40,27 @@ class RandomComponentArgs:
 @pulumi.type_token("provider-boilerplate:index:RandomComponent")
 class RandomComponent(pulumi.ComponentResource):
     @overload
-    def __init__(__self__,
-                 resource_name: str,
-                 opts: Optional[pulumi.ResourceOptions] = None,
-                 length: Optional[pulumi.Input[_builtins.int]] = None,
-                 __props__=None):
+    def __init__(
+        __self__,
+        resource_name: str,
+        opts: Optional[pulumi.ResourceOptions] = None,
+        length: Optional[pulumi.Input[_builtins.int]] = None,
+        __props__=None,
+    ):
         """
         Create a RandomComponent resource with the given unique name, props, and options.
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         """
         ...
+
     @overload
-    def __init__(__self__,
-                 resource_name: str,
-                 args: RandomComponentArgs,
-                 opts: Optional[pulumi.ResourceOptions] = None):
+    def __init__(
+        __self__,
+        resource_name: str,
+        args: RandomComponentArgs,
+        opts: Optional[pulumi.ResourceOptions] = None,
+    ):
         """
         Create a RandomComponent resource with the given unique name, props, and options.
         :param str resource_name: The name of the resource.
@@ -61,26 +68,37 @@ class RandomComponent(pulumi.ComponentResource):
         :param pulumi.ResourceOptions opts: Options for the resource.
         """
         ...
+
     def __init__(__self__, resource_name: str, *args, **kwargs):
-        resource_args, opts = _utilities.get_resource_args_opts(RandomComponentArgs, pulumi.ResourceOptions, *args, **kwargs)
+        resource_args, opts = _utilities.get_resource_args_opts(
+            RandomComponentArgs, pulumi.ResourceOptions, *args, **kwargs
+        )
         if resource_args is not None:
             __self__._internal_init(resource_name, opts, **resource_args.__dict__)
         else:
             __self__._internal_init(resource_name, *args, **kwargs)
 
-    def _internal_init(__self__,
-                 resource_name: str,
-                 opts: Optional[pulumi.ResourceOptions] = None,
-                 length: Optional[pulumi.Input[_builtins.int]] = None,
-                 __props__=None):
-        opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
+    def _internal_init(
+        __self__,
+        resource_name: str,
+        opts: Optional[pulumi.ResourceOptions] = None,
+        length: Optional[pulumi.Input[_builtins.int]] = None,
+        __props__=None,
+    ):
+        opts = pulumi.ResourceOptions.merge(
+            _utilities.get_resource_opts_defaults(), opts
+        )
         if not isinstance(opts, pulumi.ResourceOptions):
-            raise TypeError('Expected resource options to be a ResourceOptions instance')
+            raise TypeError(
+                "Expected resource options to be a ResourceOptions instance"
+            )
         if opts.id is not None:
-            raise ValueError('ComponentResource classes do not support opts.id')
+            raise ValueError("ComponentResource classes do not support opts.id")
         else:
             if __props__ is not None:
-                raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
+                raise TypeError(
+                    "__props__ is only valid when passed in combination with a valid opts.id to get an existing resource"
+                )
             __props__ = RandomComponentArgs.__new__(RandomComponentArgs)
 
             if length is None and not opts.urn:
@@ -88,11 +106,12 @@ class RandomComponent(pulumi.ComponentResource):
             __props__.__dict__["length"] = length
             __props__.__dict__["password"] = None
         super(RandomComponent, __self__).__init__(
-            'provider-boilerplate:index:RandomComponent',
+            "provider-boilerplate:index:RandomComponent",
             resource_name,
             __props__,
             opts,
-            remote=True)
+            remote=True,
+        )
 
     @_builtins.property
     @pulumi.getter
@@ -103,4 +122,3 @@ class RandomComponent(pulumi.ComponentResource):
     @pulumi.getter
     def password(self) -> pulumi.Output[_builtins.str]:
         return pulumi.get(self, "password")
-
