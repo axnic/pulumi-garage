@@ -36,7 +36,42 @@ func Provider() p.Provider {
 		WithDisplayName("pulumi-garage").
 		WithDescription("A Pulumi provider to manage Garage S3-compatible object storage.").
 		WithHomepage("https://github.com/axnic/pulumi-garage").
+		WithRepository("https://github.com/axnic/pulumi-garage").
+		WithPublisher("axnic").
+		WithLicense("Apache-2.0").
+		WithKeywords("garage", "s3", "object-storage", "self-hosted").
 		WithNamespace("axnic").
+		WithGoImportPath("github.com/axnic/pulumi-garage/sdk/go/pulumi-garage").
+		// Lets `pulumi plugin install`/the engine's automatic plugin
+		// resolution fetch the provider binary straight from this repo's
+		// GitHub Releases - no Pulumi Registry listing required for the
+		// provider binary itself to be usable.
+		WithPluginDownloadURL("github://api.github.com/axnic/pulumi-garage").
+		WithLanguageMap(map[string]any{
+			"nodejs": map[string]any{
+				"packageName":          "@axnic/pulumi-garage",
+				"respectSchemaVersion": true,
+			},
+			"python": map[string]any{
+				"packageName":          "pulumi_garage",
+				"respectSchemaVersion": true,
+				"pyproject": map[string]any{
+					"enabled": true,
+				},
+			},
+			"csharp": map[string]any{
+				"rootNamespace":        "Pulumi",
+				"respectSchemaVersion": true,
+			},
+			"go": map[string]any{
+				"generateResourceContainerTypes": true,
+				"importBasePath":                 "github.com/axnic/pulumi-garage/sdk/go/pulumi-garage",
+				"respectSchemaVersion":           true,
+			},
+			"java": map[string]any{
+				"basePackage": "com.axnic.pulumi",
+			},
+		}).
 		WithResources(
 			infer.Resource(Bucket{}),
 			infer.Resource(Key{}),
