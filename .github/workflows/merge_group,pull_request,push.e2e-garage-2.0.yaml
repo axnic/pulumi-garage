@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# E2E against Garage v2.0.0 - see README.md's Compatibility table. Thin
+# wrapper around _reusable-e2e.yaml; kept as its own file (rather than a
+# matrix leg) so it gets its own status badge.
+
+name: E2E (Garage v2.0.0)
+
+on:
+  merge_group: {}
+  pull_request: {}
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  e2e:
+    uses: ./.github/workflows/_reusable-e2e.yaml
+    with:
+      garage-version: v2.0.0

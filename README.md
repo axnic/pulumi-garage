@@ -191,19 +191,47 @@ Tests are layered:
   example-lifecycle tests are skipped (via `t.Skip`) when
   `GARAGE_ADMIN_ENDPOINT` isn't set.
 - `make test_e2e` - spins up a real, disposable, single-node Garage cluster via
-  Docker Compose (`docker-compose.e2e.yml`, `dxflrs/garage:v2.3.0`), runs the
-  example programs' full create/update/delete lifecycle against it plus a real
-  S3 `PutObject`/`GetObject` round trip, then tears it down. Requires Docker.
+  Docker Compose (`docker-compose.yml`), runs the example programs' full
+  create/update/delete lifecycle against it plus a real S3
+  `PutObject`/`GetObject` round trip, then tears it down. Requires Docker.
+  Defaults to `dxflrs/garage:v2.3.0`; pin another version with
+  `GARAGE_VERSION`, e.g. `GARAGE_VERSION=v2.0.0 make test_e2e` - see
+  [Compatibility](#compatibility).
 - `make lint` - runs `golangci-lint`.
 
 CI (`.github/workflows/merge_group,pull_request,push.ci.yaml`) runs lint,
-commitlint, build, unit tests, and the full E2E suite on every pull request,
-merge-queue entry, and push to `main` - this repo takes commits directly on
-`main` without a PR, so the push trigger is what actually validates them.
+commitlint, build, and unit tests on every pull request, merge-queue entry,
+and push to `main` - this repo takes commits directly on `main` without a
+PR, so the push trigger is what actually validates them. The E2E suite runs
+separately, once per supported Garage version - see
+[Compatibility](#compatibility).
 
 The provider's Admin API client (`provider/internal/garageclient/`) is a
 hand-written, thin HTTP client, internal to the provider and not part of its
 public surface.
+
+## Compatibility
+
+This provider talks to Garage's Admin API v2, introduced in Garage v2.0.0.
+Each version below is tested against the full example-program lifecycle
+(create/update/delete plus a real S3 object upload/download) in its own CI
+workflow, so its badge reflects that version alone rather than an aggregate:
+
+| Garage version | Status |
+|---|---|
+| v2.0.0 | [![E2E (Garage v2.0.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.0.yaml) |
+| v2.1.0 | [![E2E (Garage v2.1.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.1.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.1.yaml) |
+| v2.2.0 | [![E2E (Garage v2.2.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.2.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.2.yaml) |
+| v2.3.0 | [![E2E (Garage v2.3.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.3.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.3.yaml) |
+
+Each workflow (`.github/workflows/merge_group,pull_request,push.e2e-garage-2.*.yaml`)
+is a thin wrapper calling the reusable `_reusable-e2e.yaml` job with that
+version pinned - GitHub Actions status badges are per-workflow-file, not
+per-matrix-leg, which is why this is four small files rather than one
+`strategy.matrix` job. `--single-node` (the fast layout-bootstrap path) only
+exists from Garage v2.3.0 onward, so `docker-compose.yml` and
+`scripts/bootstrap-garage.sh` always use the manual `layout assign`/`apply`
+bootstrap instead, which works identically across all four versions.
 
 ## Known limitations
 
@@ -212,8 +240,10 @@ This is a v1, personal/small-org provider - scope is intentionally narrow:
 - **No cluster layout management.** Assigning nodes, zones, and capacity is not
   managed by this provider; it's a one-shot bootstrap operation that doesn't fit
   cleanly into idempotent IaC. Bootstrap your Garage cluster yourself (e.g.
-  `garage layout assign`/`apply`, or `--single-node`) before pointing this
-  provider at it.
+  `garage layout assign`/`apply`, or `--single-node` on Garage v2.3.0+) before
+  pointing this provider at it. `scripts/bootstrap-garage.sh` does this for
+  the disposable dev/test cluster in `docker-compose.yml` only - it's not
+  something this provider does on your behalf against a real cluster.
 - **`Bucket` supports only a single global alias.** No local (per-key) aliases,
   no multiple global aliases.
 - **`Key`'s global `createBucket` permission is not modelled**, deliberately -
@@ -237,8 +267,8 @@ Repo layout:
   (`provider/cmd/pulumi-resource-garage/`).
 - `sdk/` - the generated Go SDK (`make codegen`).
 - `examples/` - the YAML and Go example programs, and their lifecycle tests.
-- `docker-compose.e2e.yml`, `test/e2e/garage.toml` - the local/CI E2E fixture:
-  a disposable single-node Garage cluster with a fixed, test-only
-  `rpc_secret`/`admin_token` (not sensitive - the cluster is ephemeral and
-  local-only).
+- `docker-compose.yml`, `test/e2e/garage.toml`, `scripts/bootstrap-garage.sh` -
+  the local dev / CI E2E fixture: a disposable single-node Garage cluster with
+  a fixed, test-only `rpc_secret`/`admin_token` (not sensitive - the cluster
+  is ephemeral and local-only), and the script that bootstraps its layout.
 - `Makefile` - build, codegen, lint, and test targets.
