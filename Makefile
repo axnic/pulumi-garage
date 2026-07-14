@@ -3,12 +3,14 @@ PROJECT_NAME := Pulumi Garage Provider
 PACK             := garage
 PACKDIR          := sdk
 PROJECT          := github.com/axnic/pulumi-garage
-NODE_MODULE_NAME := @axnic/garage
-NUGET_PKG_NAME   := Axnic.Garage
+NODE_MODULE_NAME := @axnic/pulumi-garage
+NUGET_PKG_NAME   := Pulumi.Garage
 
 PROVIDER        := pulumi-resource-${PACK}
 PROVIDER_PATH   := provider
-VERSION_PATH    := ${PROVIDER_PATH}/version.Version
+# var Version string lives directly in package provider (provider/provider.go),
+# not a provider/version subpackage - keep this in sync with that.
+VERSION_PATH    := ${PROVIDER_PATH}.Version
 
 PULUMI          := pulumi
 
@@ -215,44 +217,6 @@ dev-up:
 dev-down:
 	docker compose -f docker-compose.yml down --volumes
 
-# Set these variables to enable signing of the windows binary with Azure Trusted Signing.
-AZURE_SIGNING_CLIENT_ID ?=
-AZURE_SIGNING_CLIENT_SECRET ?=
-AZURE_SIGNING_TENANT_ID ?=
-AZURE_SIGNING_ACCOUNT_ENDPOINT ?=
-AZURE_SIGNING_ACCOUNT_NAME ?=
-AZURE_SIGNING_CERT_PROFILE_NAME ?=
-SKIP_SIGNING ?=
-
-bin/jsign-7.4.jar:
-	mkdir -p bin
-	wget https://github.com/ebourg/jsign/releases/download/7.4/jsign-7.4.jar --output-document=bin/jsign-7.4.jar
-
-sign-goreleaser-exe-amd64: GORELEASER_ARCH := amd64_v1
-sign-goreleaser-exe-arm64: GORELEASER_ARCH := arm64
-
-# Set the shell to bash to allow for the use of bash syntax.
-sign-goreleaser-exe-%: SHELL:=/bin/bash
-sign-goreleaser-exe-%: bin/jsign-7.4.jar
-	SKIP_SIGNING=${SKIP_SIGNING} \
-	AZURE_SIGNING_CLIENT_ID=${AZURE_SIGNING_CLIENT_ID} \
-	AZURE_SIGNING_CLIENT_SECRET=${AZURE_SIGNING_CLIENT_SECRET} \
-	AZURE_SIGNING_TENANT_ID=${AZURE_SIGNING_TENANT_ID} \
-	AZURE_SIGNING_ACCOUNT_ENDPOINT=${AZURE_SIGNING_ACCOUNT_ENDPOINT} \
-	AZURE_SIGNING_ACCOUNT_NAME=${AZURE_SIGNING_ACCOUNT_NAME} \
-	AZURE_SIGNING_CERT_PROFILE_NAME=${AZURE_SIGNING_CERT_PROFILE_NAME} \
-	GORELEASER_ARCH=${GORELEASER_ARCH} \
-	CI=${CI} \
-		scripts/sign-windows-binary.sh
-
-# To make an immediately observable change to .ci-mgmt.yaml:
-#
-# - Edit .ci-mgmt.yaml
-# - Run make ci-mgmt to apply the change locally.
-#
-ci-mgmt: .ci-mgmt.yaml
-	go run github.com/pulumi/ci-mgmt/provider-ci@master generate
-.PHONY: ci-mgmt
 
 .PHONY:local_generate
 local_generate: # Required by CI
