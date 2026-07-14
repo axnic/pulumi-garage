@@ -1,10 +1,10 @@
-PROJECT_NAME := Pulumi Provider Boilerplate
+PROJECT_NAME := Pulumi Garage Provider
 
-PACK             := provider-boilerplate
+PACK             := garage
 PACKDIR          := sdk
-PROJECT          := github.com/pulumi/pulumi-provider-boilerplate
-NODE_MODULE_NAME := @pulumi/boilerplate
-NUGET_PKG_NAME   := Pulumi.Boilerplate
+PROJECT          := github.com/axnic/pulumi-garage
+NODE_MODULE_NAME := @axnic/garage
+NUGET_PKG_NAME   := Axnic.Garage
 
 PROVIDER        := pulumi-resource-${PACK}
 PROVIDER_PATH   := provider
@@ -12,7 +12,7 @@ VERSION_PATH    := ${PROVIDER_PATH}/version.Version
 
 PULUMI          := pulumi
 
-SCHEMA_FILE     := provider/cmd/pulumi-resource-provider-boilerplate/schema.json
+SCHEMA_FILE     := provider/cmd/pulumi-resource-garage/schema.json
 export GOPATH   := $(shell go env GOPATH)
 
 WORKING_DIR     := $(shell pwd)
@@ -89,7 +89,7 @@ sdk/go: ${SCHEMA_FILE}
 	$(PULUMI) package gen-sdk --language go ${SCHEMA_FILE} --version "${VERSION_GENERIC}"
 	cp go.mod ${PACKDIR}/go/pulumi-${PACK}/go.mod
 	cd ${PACKDIR}/go/pulumi-${PACK} && \
-		go mod edit -module=github.com/pulumi/pulumi-${PACK}/${PACKDIR}/go/pulumi-${PACK} && \
+		go mod edit -module=${PROJECT}/${PACKDIR}/go/pulumi-${PACK} && \
 		go mod tidy
 
 .PHONY: provider
@@ -178,6 +178,21 @@ install_nodejs_sdk::
 
 test:: test_provider
 	cd examples && go test -v -tags=all -timeout 2h
+
+# E2E_ADMIN_TOKEN must match the admin_token baked into test/e2e/garage.toml.
+E2E_ADMIN_TOKEN := 131a3835a4f69caebd17d0d13f53b332eb44cf2aef6bd27b
+
+# test_e2e runs the example programs' full create/read/update/delete
+# lifecycle against a real, disposable, single-node Garage cluster started
+# with Docker. Requires Docker; see docker-compose.e2e.yml.
+.PHONY: test_e2e
+test_e2e:
+	docker compose -f docker-compose.e2e.yml up --detach --wait
+	cd examples && GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) \
+		go test -v -tags=all -timeout 2h; \
+		status=$$?; \
+		docker compose -f ../docker-compose.e2e.yml down --volumes; \
+		exit $$status
 
 # Set these variables to enable signing of the windows binary with Azure Trusted Signing.
 AZURE_SIGNING_CLIENT_ID ?=
