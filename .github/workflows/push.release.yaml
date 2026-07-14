@@ -78,6 +78,15 @@ jobs:
   publish-sdks:
     name: Publish SDKs
     runs-on: ubuntu-latest
+    # `if:` conditions can't reference the `secrets` context directly
+    # ("Unrecognized named-value: 'secrets'") - only `env:` can, so each
+    # registry's "is it configured" check is computed here once and read
+    # back via `env.HAS_*` in the steps below.
+    env:
+      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+      HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
+      HAS_NUGET_KEY: ${{ secrets.NUGET_API_KEY != '' }}
+      HAS_MAVEN_CREDS: ${{ secrets.SIGNING_KEY != '' && secrets.PUBLISH_REPO_USERNAME != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -96,11 +105,11 @@ jobs:
 
       # --- Node.js / npm -----------------------------------------------
       - name: Build Node.js SDK
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        if: ${{ env.HAS_NPM_TOKEN == 'true' }}
         run: make nodejs_sdk PROVIDER_VERSION="${{ steps.version.outputs.version }}"
 
       - name: Publish to npm
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        if: ${{ env.HAS_NPM_TOKEN == 'true' }}
         working-directory: sdk/nodejs/bin
         run: |
           # npm refuses to publish a prerelease version (contains "-") to
@@ -115,11 +124,11 @@ jobs:
 
       # --- Python / PyPI -------------------------------------------------
       - name: Build Python SDK
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: ${{ env.HAS_PYPI_TOKEN == 'true' }}
         run: make python_sdk PROVIDER_VERSION="${{ steps.version.outputs.version }}"
 
       - name: Publish to PyPI
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: ${{ env.HAS_PYPI_TOKEN == 'true' }}
         working-directory: sdk/python/bin
         run: |
           # make python_sdk creates the venv in sdk/python/, one level up
@@ -132,11 +141,11 @@ jobs:
 
       # --- .NET / NuGet ---------------------------------------------------
       - name: Build .NET SDK
-        if: ${{ secrets.NUGET_API_KEY != '' }}
+        if: ${{ env.HAS_NUGET_KEY == 'true' }}
         run: make dotnet_sdk PROVIDER_VERSION="${{ steps.version.outputs.version }}"
 
       - name: Publish to NuGet
-        if: ${{ secrets.NUGET_API_KEY != '' }}
+        if: ${{ env.HAS_NUGET_KEY == 'true' }}
         run: |
           dotnet nuget push "sdk/dotnet/bin/Debug/*.nupkg" \
             --api-key "${{ secrets.NUGET_API_KEY }}" \
@@ -149,7 +158,7 @@ jobs:
       # SIGNING_PASSWORD) - Maven Central rejects unsigned artifacts. See
       # RELEASING.md for how to obtain both.
       - name: Publish Java SDK to Maven Central
-        if: ${{ secrets.SIGNING_KEY != '' && secrets.PUBLISH_REPO_USERNAME != '' }}
+        if: ${{ env.HAS_MAVEN_CREDS == 'true' }}
         working-directory: sdk/java
         run: gradle --console=plain publish
         env:
