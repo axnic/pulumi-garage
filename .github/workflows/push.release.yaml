@@ -18,7 +18,7 @@
 #      subdirectories specifically needs a tag prefixed with that
 #      subdirectory (see https://go.dev/ref/mod#vcs-version); the plain
 #      vX.Y.Z tag alone only gets you an unclean pseudo-version.
-#   3. Publishes the other 4 SDKs (nodejs, python, dotnet, java) to their
+#   3. Publishes the other 3 SDKs (nodejs, python, dotnet) to their
 #      respective registries, each independently gated on its own secret(s)
 #      being configured - see RELEASING.md for exactly which secrets to add
 #      and how. A registry you haven't set up secrets for yet is skipped,
@@ -92,7 +92,6 @@ jobs:
       HAS_NPM_TOKEN: "true" # npm uses trusted publishers, so we always have a token for it (see RELEASING.md)
       HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
       HAS_NUGET_KEY: "true" # NuGet uses OIDC, so we always can generate a key for it (see RELEASING.md)
-      HAS_MAVEN_CREDS: ${{ secrets.SIGNING_KEY != '' && secrets.PUBLISH_REPO_USERNAME != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -162,19 +161,3 @@ jobs:
             --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
-
-      # --- Java / Maven Central ------------------------------------------
-      # Needs a Sonatype/Maven Central account (PUBLISH_REPO_USERNAME/
-      # PUBLISH_REPO_PASSWORD) and a GPG key for signing (SIGNING_KEY/
-      # SIGNING_PASSWORD) - Maven Central rejects unsigned artifacts. See
-      # RELEASING.md for how to obtain both.
-      - name: Publish Java SDK to Maven Central
-        if: ${{ env.HAS_MAVEN_CREDS == 'true' }}
-        working-directory: sdk/java
-        run: gradle --console=plain publish
-        env:
-          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-          PUBLISH_REPO_USERNAME: ${{ secrets.PUBLISH_REPO_USERNAME }}
-          PUBLISH_REPO_PASSWORD: ${{ secrets.PUBLISH_REPO_PASSWORD }}
