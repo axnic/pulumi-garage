@@ -9,6 +9,8 @@
 #   2. Validates Conventional Commits on every PR commit
 #   3. Builds the provider binary via make provider
 #   4. Runs provider unit tests via make test
+#   5. Runs the example programs' full lifecycle against a disposable,
+#      dockerized Garage cluster via make test_e2e
 
 name: PR & Merge-Queue Quality Gate
 
@@ -100,3 +102,21 @@ jobs:
 
       - name: Run provider tests
         run: make test
+
+  e2e:
+    name: E2E (Garage)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: Run E2E tests against a disposable Garage cluster
+        run: make test_e2e

@@ -1,0 +1,23 @@
+# Config for the disposable, single-node Garage instance used by `make
+# test_e2e` (docker-compose.e2e.yml) and CI. Not for production use - the
+# secrets below are fixed and public precisely because this cluster only
+# ever exists for the duration of a test run.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "84bff2086127ad18ab9ee01a4c031f1a3da436498c7ede8e9f8bdc8d55031e1e"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "131a3835a4f69caebd17d0d13f53b332eb44cf2aef6bd27b"
