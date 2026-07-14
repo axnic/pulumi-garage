@@ -21,6 +21,8 @@ permissions: {}
 
 jobs:
   e2e:
+    permissions:
+      contents: read
     uses: ./.github/workflows/_reusable-e2e.yaml
     with:
       garage-version: v2.3.0
