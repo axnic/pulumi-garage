@@ -1,11 +1,11 @@
-module github.com/pulumi/pulumi-provider-boilerplate/examples/go
+module github.com/axnic/pulumi-garage/examples/go
 
 go 1.25.0
 
-replace github.com/pulumi/pulumi-provider-boilerplate/sdk/go/pulumi-provider-boilerplate => ../../sdk/go/pulumi-provider-boilerplate
+replace github.com/axnic/pulumi-garage/sdk/go/pulumi-garage => ../../sdk/go/pulumi-garage
 
 require (
-	github.com/pulumi/pulumi-provider-boilerplate/sdk/go/pulumi-provider-boilerplate v0.0.99
+	github.com/axnic/pulumi-garage/sdk/go/pulumi-garage v0.0.99
 	github.com/pulumi/pulumi/sdk/v3 v3.212.0
 )
 

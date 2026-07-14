@@ -1,15 +1,24 @@
 # YAML Example Program
 
-Test Pulumi program written in YAML for testing this provider locally.
+A minimal Pulumi program exercising the three resources this provider
+implements: `Key`, `Bucket`, and `BucketKeyPermission`. Used both as a
+hand-editable local playground and as the program driven by
+`TestYAMLExampleLifecycle` in `examples/yaml_test.go`.
 
-Edit this yaml program to test features of your provider locally. You can run this program using the following command:
+The provider needs a running Garage cluster to talk to. Configure it either
+via stack config:
+
+```bash
+pulumi config set garage:endpoint http://localhost:3903
+pulumi config set garage:adminToken <token> --secret
+```
+
+or via the `GARAGE_ADMIN_ENDPOINT` / `GARAGE_ADMIN_TOKEN` environment
+variables (see the repository README for how to start a local Garage with
+Docker). Then:
 
 ```bash
 pulumi login
 pulumi stack init local
 pulumi up
 ```
-
-Note that unlike the rest of the auto-generated examples in the ./examples directory, this example is not automatically generated. It is intended to be a place for you to test your provider locally.
-
-The remaining examples are language specific examples derived from the `make gen_examples` command supported in this provider's Makefile. These examples are automatically generated and should not be edited directly. To regenerate these examples, run `make gen_examples` in the root of this provider's repository.

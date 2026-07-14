@@ -1,16 +1,25 @@
-name: provider-boilerplate
+name: garage-example-yaml
 runtime: yaml
 
 resources:
-  myRandomResource:
-    type: provider-boilerplate:Random
+  myKey:
+    type: garage:Key
     properties:
-      length: 24
-  myRandomComponent:
-    type: provider-boilerplate:RandomComponent
+      name: my-app-key
+  myBucket:
+    type: garage:Bucket
     properties:
-      length: 24
+      globalAlias: my-app-bucket
+  myPermission:
+    type: garage:BucketKeyPermission
+    properties:
+      bucketId: ${myBucket.id}
+      accessKeyId: ${myKey.accessKeyId}
+      permissions:
+        read: true
+        write: true
 
 outputs:
-  output:
-    value: ${myRandomResource.result}
+  bucketId: ${myBucket.id}
+  accessKeyId: ${myKey.accessKeyId}
+  secretAccessKey: ${myKey.secretAccessKey}
