@@ -1,22 +1,28 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 #
-# CI — Pull-request & merge-queue quality gate
+# CI — Pull-request, merge-queue & main quality gate
 #
-# Triggered by merge_group and pull_request events.
+# Triggered by merge_group and pull_request events, and by every push to
+# main - since this repo takes commits directly on main without a PR, the
+# push trigger is what actually validates them (merge_group/pull_request
+# never fire for a direct push).
 #
 # What it does:
 #   1. Runs golangci-lint on Go provider code
-#   2. Validates Conventional Commits on every PR commit
+#   2. Validates Conventional Commits on every PR commit (or, on a direct
+#      push to main, the commits introduced by that push)
 #   3. Builds the provider binary via make provider
 #   4. Runs provider unit tests via make test
 #   5. Runs the example programs' full lifecycle against a disposable,
 #      dockerized Garage cluster via make test_e2e
 
-name: PR & Merge-Queue Quality Gate
+name: PR, Merge-Queue & Main Quality Gate
 
 on:
   merge_group: {}
   pull_request: {}
+  push:
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -61,10 +67,19 @@ jobs:
           cache: true
 
       - name: Validate commit messages
+        if: github.event_name != 'push'
         run: |
           commitlint \
             --from ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }} \
             --to   ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }} \
+            --verbose
+
+      - name: Validate commit messages (push to main)
+        if: github.event_name == 'push'
+        run: |
+          commitlint \
+            --from ${{ github.event.before }} \
+            --to   ${{ github.event.after }} \
             --verbose
 
   build:

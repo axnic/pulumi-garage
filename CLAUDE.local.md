@@ -33,4 +33,6 @@
   the boilerplate->real-provider conversion; don't reintroduce references to them
   without checking they've actually been regenerated.
 - CI job list (as of last check): lint, commitlint, build, test, e2e — defined in
-  .github/workflows/merge_group,pull_request.ci.yaml.
+  .github/workflows/merge_group,pull_request,push.ci.yaml. Triggers on
+  merge_group, pull_request, AND push to main (commits land on main directly,
+  without a PR, so the push trigger is what actually validates them).

@@ -196,9 +196,10 @@ Tests are layered:
   S3 `PutObject`/`GetObject` round trip, then tears it down. Requires Docker.
 - `make lint` - runs `golangci-lint`.
 
-CI (`.github/workflows/merge_group,pull_request.ci.yaml`) runs lint, commitlint,
-build, unit tests, and the full E2E suite on every pull request and merge-queue
-entry.
+CI (`.github/workflows/merge_group,pull_request,push.ci.yaml`) runs lint,
+commitlint, build, unit tests, and the full E2E suite on every pull request,
+merge-queue entry, and push to `main` - this repo takes commits directly on
+`main` without a PR, so the push trigger is what actually validates them.
 
 The provider's Admin API client (`provider/internal/garageclient/`) is a
 hand-written, thin HTTP client, internal to the provider and not part of its
