@@ -23,7 +23,7 @@ body:
       description: Which part of the project would this affect?
       options:
         - Provider – resource or datasource logic
-        - SDK – generated SDK (Node.js / Python / Go / .NET / Java)
+        - SDK – generated SDK (Node.js / Python / Go / .NET)
         - Examples – example programs
         - Tests – provider or SDK tests
         - Docs / README

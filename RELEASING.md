@@ -21,16 +21,20 @@ which:
    resolves to a clean version instead of a pseudo-version (Go's module
    versioning rule for modules living in a subdirectory of a repo — see
    [go.dev/ref/mod#vcs-version](https://go.dev/ref/mod#vcs-version)).
-3. Publishes the other 4 SDKs (nodejs, python, dotnet, java) to their
-   respective registries. **PyPI and Java are gated on their secrets being
-   configured** — skipped, not failed, if you haven't onboarded them yet, so
-   you can cut binary-only releases before every registry is wired up. npm
-   and NuGet use trusted publishing instead of a stored secret, so those two
-   steps always run rather than being skippable this way - see
+3. Publishes the other 3 SDKs (nodejs, python, dotnet) to their respective
+   registries. **PyPI is gated on its secret being configured** — skipped,
+   not failed, if you haven't onboarded it yet, so you can cut binary-only
+   releases before every registry is wired up. npm and NuGet use trusted
+   publishing instead of a stored secret, so those two steps always run
+   rather than being skippable this way - see
    [Required secrets](#required-secrets) below. In practice, onboard npm and
    NuGet's registry-side trusted-publisher policies *before* the first tag
    that's meant to reach them, otherwise that step fails loudly instead of
    quietly skipping.
+
+There's no Java/Maven SDK - dropped as not worth the setup cost (Sonatype
+namespace verification, GPG-signed releases) given how little of the
+Pulumi ecosystem uses Java.
 
 A tag with a prerelease segment (`-alpha.1`, `-beta.2`, ...) is automatically
 marked as a prerelease on GitHub (`release.prerelease: auto` in
@@ -54,8 +58,6 @@ registry-side setup described below - no GitHub secret to rotate or leak.
 | — (trusted publishing) | [npmjs.com](https://www.npmjs.com) | Node.js SDK (`@axnic/pulumi-garage`) |
 | `PYPI_API_TOKEN` | [PyPI](https://pypi.org) | Python SDK (`pulumi_garage`) |
 | `NUGET_USER` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Pulumi.Garage`) — trusted publishing, `NUGET_USER` is just the NuGet.org username, not a credential |
-| `PUBLISH_REPO_USERNAME`, `PUBLISH_REPO_PASSWORD` | [Maven Central / Sonatype](https://central.sonatype.com) | Java SDK (`com.axnic.pulumi:pulumi-garage`) |
-| `SIGNING_KEY`, `SIGNING_PASSWORD` | GPG signing | Java SDK — Maven Central rejects unsigned artifacts |
 
 ### Obtaining each secret
 
@@ -69,7 +71,9 @@ registry-side setup described below - no GitHub secret to rotate or leak.
   credential instead of reading `NODE_AUTH_TOKEN`.
 - **`PYPI_API_TOKEN`** — create a [PyPI API
   token](https://pypi.org/help/#apitoken) scoped to the `pulumi_garage`
-  project (or your account, before the project exists yet).
+  project (or your account, before the project exists yet). PyPI trusted
+  publishing exists too but isn't set up here yet; this token is the only
+  registry still using a stored secret.
 - **`NUGET_USER`** (trusted publishing) — on
   [NuGet.org](https://www.nuget.org), configure a Trusted Publishing policy
   for the `Pulumi.Garage` package pointing at `axnic/pulumi-garage`'s
@@ -78,24 +82,6 @@ registry-side setup described below - no GitHub secret to rotate or leak.
   [`NuGet/login`](https://github.com/NuGet/login) action uses to look up
   the right trusted-publishing policy before exchanging this workflow's
   OIDC token for a short-lived API key at publish time).
-- **`PUBLISH_REPO_USERNAME` / `PUBLISH_REPO_PASSWORD`** — register a
-  [Sonatype Central account](https://central.sonatype.com/) and claim the
-  `com.axnic.pulumi` namespace (requires proving control of the `axnic`
-  GitHub org or a domain you own), then generate a [user
-  token](https://central.sonatype.org/publish/generate-portal-token/) — the
-  token's username/password pair are these two secrets.
-- **`SIGNING_KEY` / `SIGNING_PASSWORD`** — generate a dedicated GPG key pair
-  for releases (`gpg --full-generate-key`), publish the public key to a
-  keyserver (Maven Central verifies signatures against
-  `keys.openpgp.org`/`keyserver.ubuntu.com`), then export the private key as
-  an ASCII-armored, in-memory-usable key:
-  ```sh
-  gpg --export-secret-keys --armor <key-id> > signing-key.asc
-  ```
-  `SIGNING_KEY` is the contents of `signing-key.asc`; `SIGNING_PASSWORD` is
-  the key's passphrase. The Gradle build consumes both via
-  `useInMemoryPgpKeys` (see `sdk/java/build.gradle`) — no keyring file needed
-  on the runner.
 
 ## Cutting a release
 
@@ -110,9 +96,9 @@ registry-side setup described below - no GitHub secret to rotate or leak.
 3. Watch the [`Release` workflow
    run](https://github.com/axnic/pulumi-garage/actions/workflows/push.release.yaml).
    The GitHub Release itself (provider binaries) always runs. npm and NuGet
-   always attempt to publish (trusted publishing, no secret gate); PyPI and
-   the Java SDK publish steps run only for the registries you've configured
-   secrets for - see [Required secrets](#required-secrets).
+   always attempt to publish (trusted publishing, no secret gate); PyPI only
+   runs once its secret is configured - see
+   [Required secrets](#required-secrets).
 4. Verify: `pulumi plugin install resource garage <version>` (or let `pulumi
    up` resolve it automatically from the provider's `pluginDownloadURL`),
    and check the registries you published to for the new package version.
@@ -121,8 +107,8 @@ registry-side setup described below - no GitHub secret to rotate or leak.
 
 Publishing is not currently idempotent-safe to blindly re-run for every
 registry (npm and PyPI both reject re-publishing the same version; NuGet's
-`--skip-duplicate` and Maven's staging flow tolerate retries better). If one
-SDK's publish step fails:
+`--skip-duplicate` tolerates retries better). If one SDK's publish step
+fails:
 
 - Fix the underlying issue (expired token, missing namespace claim, etc.).
 - Re-run just the failed job from the Actions UI ("Re-run failed jobs") —

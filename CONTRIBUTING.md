@@ -110,15 +110,17 @@ schema (`provider/cmd/pulumi-resource-garage/schema.json`) and all 5 SDKs:
 make codegen
 ```
 
-This regenerates `sdk/{go,nodejs,python,dotnet,java}/` from the schema. Only the
+This regenerates `sdk/{go,nodejs,python,dotnet}/` from the schema. Only the
 generated *source* under `sdk/*/` is committed; per-language build/publish output
-(`sdk/python/venv/`, `sdk/nodejs/bin/`, `sdk/java/.gradle/`, ...) is gitignored (see the
+(`sdk/python/venv/`, `sdk/nodejs/bin/`, `sdk/dotnet/bin/`, ...) is gitignored (see the
 root `.gitignore` - the per-language `.gitignore`/`.gitattributes` files that codegen
 itself generates get wiped on every run, so they can't be hand-edited to cover this).
 
 To build a single language's SDK locally (e.g. to smoke-test a packaging change),
-`make {nodejs,python,dotnet,java,go}_sdk` runs codegen plus that language's own build
-step (`yarn install && tsc`, a Python venv + `build`, `dotnet build`, `gradle build`).
+`make {nodejs,python,dotnet,go}_sdk` runs codegen plus that language's own build
+step (`yarn install && tsc`, a Python venv + `build`, `dotnet build`). There's no
+Java/Maven SDK - dropped as not worth the setup cost given how little of the Pulumi
+ecosystem uses Java.
 
 Field-level documentation comes from `infer.Annotate` calls in each resource's
 `*_resource.go` (see `provider/bucket_resource.go` for the pattern) - these flow

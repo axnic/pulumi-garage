@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/%40axnic%2Fpulumi-garage.svg)](https://www.npmjs.com/package/@axnic/pulumi-garage)
 [![PyPI version](https://img.shields.io/pypi/v/pulumi_garage.svg)](https://pypi.org/project/pulumi_garage/)
 [![NuGet version](https://img.shields.io/nuget/v/Pulumi.Garage.svg)](https://www.nuget.org/packages/Pulumi.Garage/)
-[![Maven Central](https://img.shields.io/maven-central/v/com.axnic.pulumi/pulumi-garage.svg)](https://central.sonatype.com/artifact/com.axnic.pulumi/pulumi-garage)
 [![License](https://img.shields.io/github/license/axnic/pulumi-garage.svg)](LICENSE)
 
 # Pulumi Garage Provider
@@ -56,16 +55,6 @@ go get github.com/axnic/pulumi-garage/sdk/go/pulumi-garage
 
 ```bash
 dotnet add package Pulumi.Garage
-```
-
-### Java
-
-```xml
-<dependency>
-    <groupId>com.axnic.pulumi</groupId>
-    <artifactId>pulumi-garage</artifactId>
-    <version>[1.0.0,)</version>
-</dependency>
 ```
 
 The provider binary itself doesn't require any of the above - `pulumi plugin install
@@ -167,8 +156,11 @@ This is a v1, personal/small-org provider - scope is intentionally narrow:
 - **Deleting a non-empty `Bucket` fails.** This mirrors Garage's (and S3's) own native
   behavior; it's by design, not a bug.
 - **Only YAML and Go example programs are exercised in CI/E2E.** The nodejs, python,
-  dotnet, and java SDKs are generated and published (see [Installing](#installing))
-  but aren't covered by this repo's example programs or lifecycle tests.
+  and dotnet SDKs are generated and published (see [Installing](#installing)) but
+  aren't covered by this repo's example programs or lifecycle tests.
+- **No Java/Maven SDK.** Pulumi's Java support has too little adoption to justify the
+  extra setup cost (Sonatype namespace verification, GPG-signed releases); the nodejs,
+  python, dotnet, and go SDKs cover the ecosystem's actual usage.
 
 ## Reference
 

@@ -29,9 +29,12 @@
   Key.createBucket not modelled, non-empty Bucket delete fails, only yaml/go SDKs
   generated) are deliberate — keep the "Known limitations" section explicit, don't
   bury or soften it.
-- nodejs/python/dotnet/java SDK dirs were deleted from sdk/ and examples/ as part of
-  the boilerplate->real-provider conversion; don't reintroduce references to them
-  without checking they've actually been regenerated.
+- nodejs/python/dotnet SDK dirs were deleted from sdk/ and examples/ as part of
+  the boilerplate->real-provider conversion, then regenerated later for registry
+  publishing (see git history) - don't reintroduce references to them without
+  checking they've actually been regenerated. Java/Maven was regenerated once
+  too, then dropped for good (low pulumi+java adoption vs. setup cost) - don't
+  reintroduce it without an explicit ask.
 - CI job list (as of last check): lint, commitlint, build, test — defined in
   .github/workflows/merge_group,pull_request,push.ci.yaml. Triggers on
   merge_group, pull_request, AND push to main (commits land on main directly,

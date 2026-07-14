@@ -65,16 +65,12 @@ $(SCHEMA_FILE): provider
 # To build the SDKs, use `make build_sdks`
 #
 # Required by CI (weekly-pulumi-update)
-codegen: $(SCHEMA_FILE) sdk/dotnet sdk/go sdk/nodejs sdk/python sdk/java
+codegen: $(SCHEMA_FILE) sdk/dotnet sdk/go sdk/nodejs sdk/python
 
 .PHONY: sdk/%
 sdk/%: $(SCHEMA_FILE)
 	rm -rf $@
 	$(PULUMI) package gen-sdk --language $* $(SCHEMA_FILE) --version "${VERSION_GENERIC}"
-
-sdk/java: $(SCHEMA_FILE)
-	rm -rf $@
-	$(PULUMI) package gen-sdk --language java $(SCHEMA_FILE)
 
 sdk/python: $(SCHEMA_FILE)
 	rm -rf $@
@@ -129,16 +125,11 @@ python_sdk: sdk/python
 		cd ./bin && \
 		../venv/bin/python -m build .
 
-java_sdk:: PACKAGE_VERSION := $(VERSION_GENERIC)
-java_sdk:: sdk/java
-	cd sdk/java/ && \
-		gradle --console=plain build
-
 .PHONY: build
 build:: provider build_sdks
 
 .PHONY: build_sdks
-build_sdks: dotnet_sdk go_sdk nodejs_sdk python_sdk java_sdk
+build_sdks: dotnet_sdk go_sdk nodejs_sdk python_sdk
 
 # Required for the codegen action that runs in pulumi/pulumi
 only_build:: build
@@ -169,9 +160,6 @@ install_python_sdk::
 	#target intentionally blank
 
 install_go_sdk::
-	#target intentionally blank
-
-install_java_sdk::
 	#target intentionally blank
 
 install_nodejs_sdk::
@@ -227,10 +215,6 @@ generate_schema: ${SCHEMA_PATH} # Required by CI
 .PHONY: build_go install_go_sdk
 generate_go: sdk/go # Required by CI
 build_go: # Required by CI
-
-.PHONY: build_java install_java_sdk
-generate_java: sdk/java # Required by CI
-build_java: java_sdk # Required by CI
 
 .PHONY: build_python install_python_sdk
 generate_python: sdk/python # Required by CI

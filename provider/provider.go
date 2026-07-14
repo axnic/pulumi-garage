@@ -68,9 +68,6 @@ func Provider() p.Provider {
 				"importBasePath":                 "github.com/axnic/pulumi-garage/sdk/go/pulumi-garage",
 				"respectSchemaVersion":           true,
 			},
-			"java": map[string]any{
-				"basePackage": "com.axnic.pulumi",
-			},
 		}).
 		WithResources(
 			infer.Resource(Bucket{}),

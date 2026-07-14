@@ -24,9 +24,6 @@
       "importBasePath": "github.com/axnic/pulumi-garage/sdk/go/pulumi-garage",
       "respectSchemaVersion": true
     },
-    "java": {
-      "basePackage": "com.axnic.pulumi"
-    },
     "nodejs": {
       "packageName": "@axnic/pulumi-garage",
       "respectSchemaVersion": true
