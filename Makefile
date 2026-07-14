@@ -191,7 +191,7 @@ E2E_ADMIN_TOKEN := 131a3835a4f69caebd17d0d13f53b332eb44cf2aef6bd27b
 .PHONY: test_e2e
 test_e2e:
 	docker compose -f docker-compose.yml up --detach --wait
-	./scripts/bootstrap-garage.sh docker-compose.yml
+	GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) ./scripts/bootstrap-garage.sh
 	cd examples && GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) \
 		go test -v -tags=all -timeout 2h; \
 		status=$$?; \
@@ -205,7 +205,7 @@ test_e2e:
 .PHONY: dev-up
 dev-up:
 	docker compose -f docker-compose.yml up --detach --wait
-	./scripts/bootstrap-garage.sh docker-compose.yml
+	GARAGE_ADMIN_ENDPOINT=http://localhost:3903 GARAGE_ADMIN_TOKEN=$(E2E_ADMIN_TOKEN) ./scripts/bootstrap-garage.sh
 	@echo "Garage admin API:  http://localhost:3903"
 	@echo "Garage S3 API:     http://localhost:3900"
 	@echo "export GARAGE_ADMIN_ENDPOINT=http://localhost:3903"

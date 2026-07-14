@@ -1,26 +1,31 @@
 {
   "name": "pulumi-garage",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
   "features": {
-    // Gives the container a `docker`/`docker compose` CLI wired to the
-    // *host's* Docker daemon (sibling containers, not nested) - needed for
-    // `make dev-up` / `make test_e2e`, which drive docker-compose.yml.
+    // Provisions go/pulumi/golangci-lint/commitlint/etc. via `mise install`
+    // against this repo's own mise config - see postCreateCommand.
+    "ghcr.io/devcontainers-extra/features/mise:1": {},
+    // Gives this container a `docker`/`docker compose` CLI wired to the
+    // *host's* Docker daemon (sibling containers, not nested) - lets
+    // `make dev-up` / `make test_e2e` work from in here too, against a
+    // separate disposable stack (see docker-compose.yml's comment).
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },
-  "postCreateCommand": "mise trust && mise install",
   "forwardPorts": [3900, 3903],
   "portsAttributes": {
     "3900": { "label": "Garage S3 API" },
     "3903": { "label": "Garage Admin API" }
   },
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "customizations": {
     "vscode": {
       "extensions": [
         "golang.go",
         "redhat.vscode-yaml",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "hverlin.mise-vscode"
       ]
     }
   },

@@ -237,12 +237,34 @@ bootstrap instead, which works identically across all four versions.
 
 ### Devcontainer
 
-`.devcontainer/` provisions Go, the Pulumi CLI, and everything else pinned in
-`.config/mise.toml` (via `mise install`), plus Docker access, in a VS Code /
-GitHub Codespaces container. Open the repo in VS Code with the
+Open the repo in VS Code with the
 [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-and "Reopen in Container" - `make test`, `make lint`, and `make test_e2e` all
-work out of the box once it's built.
+(or a GitHub Codespace) and "Reopen in Container" - everything is ready the
+moment it finishes building, no manual setup step:
+
+- Go, the Pulumi CLI, and everything else pinned in `.config/mise.toml` are
+  installed via the [mise feature](https://github.com/devcontainers-extra/features/tree/main/src/mise)
+  (`ghcr.io/devcontainers-extra/features/mise:1`) and `postCreateCommand`.
+- A single-node Garage instance (`.devcontainer/docker-compose.yml`) is
+  already running, sharing this container's network namespace
+  (`network_mode: service:garage`) and already bootstrapped, so
+  `http://localhost:3903` / `http://localhost:3900` just work.
+- `GARAGE_ADMIN_ENDPOINT` / `GARAGE_ADMIN_TOKEN` are already exported (see
+  the `dev` service's `environment:` block), and a starter S3 access key
+  named `dev` is created on first boot - its credentials are printed once in
+  the "Reopen in Container" log (`GARAGE_DEV_ACCESS_KEY_ID` /
+  `GARAGE_DEV_SECRET_ACCESS_KEY`). It isn't granted any bucket permissions
+  yet; wire it into a `BucketKeyPermission` as part of whatever you're
+  testing.
+
+`make lint` and `make test` work immediately - and because
+`GARAGE_ADMIN_ENDPOINT` is already set, `make test` runs the example
+lifecycle tests too (normally skipped without a live cluster), so it's a
+fuller check inside the devcontainer than outside it. `make dev-up` /
+`make test_e2e` also work, via a *separate*, disposable Garage stack (see
+[Without a devcontainer](#without-a-devcontainer)) reached through the
+`docker-outside-of-docker` feature - no port conflict with the always-on
+instance, since that one publishes no host ports of its own.
 
 ### Without a devcontainer
 
@@ -267,9 +289,11 @@ This is a v1, personal/small-org provider - scope is intentionally narrow:
   managed by this provider; it's a one-shot bootstrap operation that doesn't fit
   cleanly into idempotent IaC. Bootstrap your Garage cluster yourself (e.g.
   `garage layout assign`/`apply`, or `--single-node` on Garage v2.3.0+) before
-  pointing this provider at it. `scripts/bootstrap-garage.sh` does this for
-  the disposable dev/test cluster in `docker-compose.yml` only - it's not
-  something this provider does on your behalf against a real cluster.
+  pointing this provider at it. `scripts/bootstrap-garage.sh` (plain Admin API
+  calls, works against any reachable Garage - it's what bootstraps the
+  disposable dev/test cluster and the devcontainer's always-on one) is a
+  convenience for those fixtures, not something this provider does on your
+  behalf against a real cluster.
 - **`Bucket` supports only a single global alias.** No local (per-key) aliases,
   no multiple global aliases.
 - **`Key`'s global `createBucket` permission is not modelled**, deliberately -
@@ -297,6 +321,7 @@ Repo layout:
   the local dev / CI E2E fixture: a disposable single-node Garage cluster with
   a fixed, test-only `rpc_secret`/`admin_token` (not sensitive - the cluster
   is ephemeral and local-only), and the script that bootstraps its layout.
-- `.devcontainer/` - VS Code / Codespaces dev environment, see
+- `.devcontainer/` - VS Code / Codespaces dev environment (its own
+  `docker-compose.yml`, an always-on Garage instance), see
   [Local development](#local-development).
 - `Makefile` - build, codegen, lint, test, and dev-cluster targets.
