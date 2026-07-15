@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# Weekly check for new stable Garage v2.x releases. If found, opens a PR that
+# adds the matching per-version E2E workflow file and README badge row.
+
+name: Sync E2E matrix
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # Monday 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Detect new Garage releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Sync E2E matrix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tmpdir=$(mktemp -d) && trap 'rm -rf "$tmpdir"' EXIT
+          curl -sfL "https://git.deuxfleurs.fr/api/v1/repos/Deuxfleurs/garage/releases" \
+            | jq -r '.[] | select(.prerelease == false) | .tag_name' \
+            | grep -E '^v2\.[0-9]+\.[0-9]+$' | sort -V > "$tmpdir/releases.txt"
+          existing=$(ls .github/workflows/merge_group,pull_request,push.e2e-garage-2.*.yaml 2>/dev/null \
+            | sed -n 's/.*e2e-garage-2\.\([0-9]*\)\.yaml$/v2.\1.0/p' | sort -V)
+          new_versions=$(comm -13 <(printf '%s\n' $existing) "$tmpdir/releases.txt" || true)
+          [ -z "$new_versions" ] && echo "No new Garage releases found." && exit 0
+          echo "New versions: $new_versions"
+          branch="ci/e2e-garage-$(date +%Y%m%d)" && git checkout -b "$branch"
+          for ver in $new_versions; do
+            minor=${ver#v}; minor=${minor%.*}
+            wf=".github/workflows/merge_group,pull_request,push.e2e-garage-${minor}.yaml"
+            sed "s/__VER__/${ver}/g" .github/workflows/templates/e2e-workflow.yaml.tmpl > "$wf"
+            echo "Created $wf"
+            badge_url="https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-${minor}.yaml"
+            row="| ${ver} | [![E2E (Garage ${ver})](${badge_url}/badge.svg?branch=main)](${badge_url}) |"
+            last_row=$(grep -n '^| v2\.' README.md | tail -1 | cut -d: -f1)
+            sed -i "${last_row}a\\${row}" README.md
+          done
+          git add .github/workflows/ README.md
+          versions_display=$(echo $new_versions | tr '\n' ' ')
+          git commit -m "ci: add E2E workflows for Garage $versions_display"
+          git push origin "$branch"
+          gh pr create \
+            --title "ci: add E2E workflows for Garage $versions_display" \
+            --body "Automated PR: detected new stable Garage releases: $versions_display." \
+            --base main
