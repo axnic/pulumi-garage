@@ -20,6 +20,8 @@ type Bucket struct {
 	CreatedAt pulumi.StringOutput `pulumi:"createdAt"`
 	// The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
 	GlobalAlias pulumi.StringPtrOutput `pulumi:"globalAlias"`
+	// S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+	LifecycleRules LifecycleRuleArgsArrayOutput `pulumi:"lifecycleRules"`
 	// The number of objects currently stored in the bucket.
 	Objects pulumi.IntOutput `pulumi:"objects"`
 	// Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.
@@ -70,6 +72,8 @@ func (BucketState) ElementType() reflect.Type {
 type bucketArgs struct {
 	// The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
 	GlobalAlias *string `pulumi:"globalAlias"`
+	// S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+	LifecycleRules []LifecycleRuleArgs `pulumi:"lifecycleRules"`
 	// Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.
 	Quotas *QuotasArgs `pulumi:"quotas"`
 	// Static-website hosting configuration for the bucket. Omit to leave website hosting disabled.
@@ -80,6 +84,8 @@ type bucketArgs struct {
 type BucketArgs struct {
 	// The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
 	GlobalAlias pulumi.StringPtrInput
+	// S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+	LifecycleRules LifecycleRuleArgsArrayInput
 	// Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.
 	Quotas QuotasArgsPtrInput
 	// Static-website hosting configuration for the bucket. Omit to leave website hosting disabled.
@@ -186,6 +192,11 @@ func (o BucketOutput) CreatedAt() pulumi.StringOutput {
 // The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
 func (o BucketOutput) GlobalAlias() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Bucket) pulumi.StringPtrOutput { return v.GlobalAlias }).(pulumi.StringPtrOutput)
+}
+
+// S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+func (o BucketOutput) LifecycleRules() LifecycleRuleArgsArrayOutput {
+	return o.ApplyT(func(v *Bucket) LifecycleRuleArgsArrayOutput { return v.LifecycleRules }).(LifecycleRuleArgsArrayOutput)
 }
 
 // The number of objects currently stored in the bucket.

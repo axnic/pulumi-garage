@@ -14,10 +14,18 @@ import (
 type Provider struct {
 	pulumi.ProviderResourceState
 
+	// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+	AccessKeyId pulumi.StringPtrOutput `pulumi:"accessKeyId"`
 	// A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
 	AdminToken pulumi.StringPtrOutput `pulumi:"adminToken"`
 	// The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
 	Endpoint pulumi.StringPtrOutput `pulumi:"endpoint"`
+	// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+	S3Endpoint pulumi.StringPtrOutput `pulumi:"s3Endpoint"`
+	// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+	S3Region pulumi.StringPtrOutput `pulumi:"s3Region"`
+	// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+	SecretAccessKey pulumi.StringPtrOutput `pulumi:"secretAccessKey"`
 }
 
 // NewProvider registers a new resource with the given unique name, arguments, and options.
@@ -30,8 +38,12 @@ func NewProvider(ctx *pulumi.Context,
 	if args.AdminToken != nil {
 		args.AdminToken = pulumi.ToSecret(args.AdminToken).(pulumi.StringPtrInput)
 	}
+	if args.SecretAccessKey != nil {
+		args.SecretAccessKey = pulumi.ToSecret(args.SecretAccessKey).(pulumi.StringPtrInput)
+	}
 	secrets := pulumi.AdditionalSecretOutputs([]string{
 		"adminToken",
+		"secretAccessKey",
 	})
 	opts = append(opts, secrets)
 	opts = internal.PkgResourceDefaultOpts(opts)
@@ -44,18 +56,34 @@ func NewProvider(ctx *pulumi.Context,
 }
 
 type providerArgs struct {
+	// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+	AccessKeyId *string `pulumi:"accessKeyId"`
 	// A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
 	AdminToken *string `pulumi:"adminToken"`
 	// The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
 	Endpoint *string `pulumi:"endpoint"`
+	// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+	S3Endpoint *string `pulumi:"s3Endpoint"`
+	// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+	S3Region *string `pulumi:"s3Region"`
+	// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+	SecretAccessKey *string `pulumi:"secretAccessKey"`
 }
 
 // The set of arguments for constructing a Provider resource.
 type ProviderArgs struct {
+	// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+	AccessKeyId pulumi.StringPtrInput
 	// A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
 	AdminToken pulumi.StringPtrInput
 	// The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
 	Endpoint pulumi.StringPtrInput
+	// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+	S3Endpoint pulumi.StringPtrInput
+	// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+	S3Region pulumi.StringPtrInput
+	// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+	SecretAccessKey pulumi.StringPtrInput
 }
 
 func (ProviderArgs) ElementType() reflect.Type {
@@ -95,6 +123,11 @@ func (o ProviderOutput) ToProviderOutputWithContext(ctx context.Context) Provide
 	return o
 }
 
+// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+func (o ProviderOutput) AccessKeyId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.AccessKeyId }).(pulumi.StringPtrOutput)
+}
+
 // A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
 func (o ProviderOutput) AdminToken() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.AdminToken }).(pulumi.StringPtrOutput)
@@ -103,6 +136,21 @@ func (o ProviderOutput) AdminToken() pulumi.StringPtrOutput {
 // The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
 func (o ProviderOutput) Endpoint() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.Endpoint }).(pulumi.StringPtrOutput)
+}
+
+// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+func (o ProviderOutput) S3Endpoint() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.S3Endpoint }).(pulumi.StringPtrOutput)
+}
+
+// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+func (o ProviderOutput) S3Region() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.S3Region }).(pulumi.StringPtrOutput)
+}
+
+// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+func (o ProviderOutput) SecretAccessKey() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.SecretAccessKey }).(pulumi.StringPtrOutput)
 }
 
 func init() {

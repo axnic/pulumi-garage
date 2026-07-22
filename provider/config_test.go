@@ -77,3 +77,38 @@ func TestConfigureFailsWithoutAdminToken(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "adminToken")
 }
+
+func TestConfigureS3OptionalWhenUnset(t *testing.T) {
+	t.Setenv(envS3Endpoint, "")
+	t.Setenv(envS3AccessKeyID, "")
+	t.Setenv(envS3SecretKey, "")
+
+	c := &Config{Endpoint: "http://localhost:3903", AdminToken: "token"}
+	err := c.Configure(context.Background())
+	require.NoError(t, err, "no lifecycleRules feature is used, so S3 config being entirely absent is fine")
+}
+
+func TestConfigureS3PartialConfigErrors(t *testing.T) {
+	t.Setenv(envS3Endpoint, "")
+	t.Setenv(envS3AccessKeyID, "")
+	t.Setenv(envS3SecretKey, "")
+
+	c := &Config{
+		Endpoint: "http://localhost:3903", AdminToken: "token",
+		S3Endpoint: "http://localhost:3900", // accessKeyId/secretAccessKey deliberately left unset
+	}
+	err := c.Configure(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "s3Endpoint")
+	assert.Contains(t, err.Error(), "accessKeyId")
+	assert.Contains(t, err.Error(), "secretAccessKey")
+}
+
+func TestConfigureS3CompleteConfigSucceeds(t *testing.T) {
+	c := &Config{
+		Endpoint: "http://localhost:3903", AdminToken: "token",
+		S3Endpoint: "http://localhost:3900", AccessKeyID: "GK000", SecretAccessKey: "secret",
+	}
+	err := c.Configure(context.Background())
+	require.NoError(t, err)
+}

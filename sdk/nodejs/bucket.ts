@@ -46,6 +46,10 @@ export class Bucket extends pulumi.CustomResource {
      */
     declare public readonly globalAlias: pulumi.Output<string | undefined>;
     /**
+     * S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+     */
+    declare public readonly lifecycleRules: pulumi.Output<outputs.LifecycleRuleArgs[] | undefined>;
+    /**
      * The number of objects currently stored in the bucket.
      */
     declare public /*out*/ readonly objects: pulumi.Output<number>;
@@ -70,6 +74,7 @@ export class Bucket extends pulumi.CustomResource {
         opts = opts || {};
         if (!opts.id) {
             resourceInputs["globalAlias"] = args?.globalAlias;
+            resourceInputs["lifecycleRules"] = args?.lifecycleRules;
             resourceInputs["quotas"] = args?.quotas;
             resourceInputs["website"] = args?.website;
             resourceInputs["bytes"] = undefined /*out*/;
@@ -79,6 +84,7 @@ export class Bucket extends pulumi.CustomResource {
             resourceInputs["bytes"] = undefined /*out*/;
             resourceInputs["createdAt"] = undefined /*out*/;
             resourceInputs["globalAlias"] = undefined /*out*/;
+            resourceInputs["lifecycleRules"] = undefined /*out*/;
             resourceInputs["objects"] = undefined /*out*/;
             resourceInputs["quotas"] = undefined /*out*/;
             resourceInputs["website"] = undefined /*out*/;
@@ -96,6 +102,10 @@ export interface BucketArgs {
      * The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
      */
     globalAlias?: pulumi.Input<string>;
+    /**
+     * S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+     */
+    lifecycleRules?: pulumi.Input<pulumi.Input<inputs.LifecycleRuleArgsArgs>[]>;
     /**
      * Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.
      */

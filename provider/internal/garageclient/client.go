@@ -26,13 +26,17 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/minio/minio-go/v7"
 )
 
-// Client talks to a single Garage cluster's Admin API.
+// Client talks to a single Garage cluster's Admin API, and optionally its
+// S3 API (needed only for bucket lifecycle management - see WithS3).
 type Client struct {
 	endpoint string
 	token    string
 	http     *http.Client
+	s3       *minio.Client
 }
 
 // New creates a Client for the Admin API rooted at endpoint (e.g.
