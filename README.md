@@ -113,9 +113,16 @@ outputs:
 |---|---|---|
 | `garage:endpoint` | `GARAGE_ADMIN_ENDPOINT` | The base URL of the Garage Admin API, e.g. `"http://localhost:3903"`. |
 | `garage:adminToken` (secret) | `GARAGE_ADMIN_TOKEN` | A bearer token authorized against the Garage Admin API. |
+| `garage:s3Endpoint` | `GARAGE_S3_ENDPOINT` | The base URL of the Garage S3 API, e.g. `"http://localhost:3900"`. Only required for `Bucket`'s `lifecycleRules`. |
+| `garage:s3Region` | `GARAGE_S3_REGION` | The S3 region to sign requests for. Defaults to `"garage"` if unset. |
+| `garage:accessKeyId` | `GARAGE_S3_ACCESS_KEY_ID` | An access key ID authorized against the Garage S3 API. Only required for `lifecycleRules`. |
+| `garage:secretAccessKey` (secret) | `GARAGE_S3_SECRET_ACCESS_KEY` | The secret access key paired with `accessKeyId`. Only required for `lifecycleRules`. |
 
-Both are required, one way or the other - the provider fails to configure if neither
-the config key nor its env var fallback is set.
+`endpoint`/`adminToken` are required, one way or the other - the provider fails to
+configure if neither the config key nor its env var fallback is set. The S3 fields are
+optional and only needed to manage a `Bucket`'s `lifecycleRules` (lifecycle rules are
+reachable only over Garage's S3 API, not its Admin API); if you set any of
+`s3Endpoint`/`accessKeyId`/`secretAccessKey`, you must set all three.
 
 ## Compatibility
 

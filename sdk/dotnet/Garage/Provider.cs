@@ -14,6 +14,12 @@ namespace Axnic.Pulumi.Garage
     public partial class Provider : global::Pulumi.ProviderResource
     {
         /// <summary>
+        /// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+        /// </summary>
+        [Output("accessKeyId")]
+        public Output<string?> AccessKeyId { get; private set; } = null!;
+
+        /// <summary>
         /// A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
         /// </summary>
         [Output("adminToken")]
@@ -24,6 +30,24 @@ namespace Axnic.Pulumi.Garage
         /// </summary>
         [Output("endpoint")]
         public Output<string?> Endpoint { get; private set; } = null!;
+
+        /// <summary>
+        /// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        /// </summary>
+        [Output("s3Endpoint")]
+        public Output<string?> S3Endpoint { get; private set; } = null!;
+
+        /// <summary>
+        /// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        /// </summary>
+        [Output("s3Region")]
+        public Output<string?> S3Region { get; private set; } = null!;
+
+        /// <summary>
+        /// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+        /// </summary>
+        [Output("secretAccessKey")]
+        public Output<string?> SecretAccessKey { get; private set; } = null!;
 
 
         /// <summary>
@@ -47,6 +71,7 @@ namespace Axnic.Pulumi.Garage
                 AdditionalSecretOutputs =
                 {
                     "adminToken",
+                    "secretAccessKey",
                 },
             };
             var merged = CustomResourceOptions.Merge(defaultOptions, options);
@@ -58,6 +83,12 @@ namespace Axnic.Pulumi.Garage
 
     public sealed class ProviderArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+        /// </summary>
+        [Input("accessKeyId")]
+        public Input<string>? AccessKeyId { get; set; }
+
         [Input("adminToken")]
         private Input<string>? _adminToken;
 
@@ -79,6 +110,34 @@ namespace Axnic.Pulumi.Garage
         /// </summary>
         [Input("endpoint")]
         public Input<string>? Endpoint { get; set; }
+
+        /// <summary>
+        /// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        /// </summary>
+        [Input("s3Endpoint")]
+        public Input<string>? S3Endpoint { get; set; }
+
+        /// <summary>
+        /// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        /// </summary>
+        [Input("s3Region")]
+        public Input<string>? S3Region { get; set; }
+
+        [Input("secretAccessKey")]
+        private Input<string>? _secretAccessKey;
+
+        /// <summary>
+        /// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+        /// </summary>
+        public Input<string>? SecretAccessKey
+        {
+            get => _secretAccessKey;
+            set
+            {
+                var emptySecret = Output.CreateSecret(0);
+                _secretAccessKey = Output.Tuple<Input<string>?, int>(value, emptySecret).Apply(t => t.Item1);
+            }
+        }
 
         public ProviderArgs()
         {
