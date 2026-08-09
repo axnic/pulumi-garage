@@ -1,12 +1,12 @@
 ---
 name: open-pr
 description: >
-  Opens a well-formed pull request for this repository. Use when asked to
+  Opens a well-formed pull request for pulumi-garage. Use when asked to
   create, open, or submit a pull request, or to push a branch and request a
   review. Enforces correct branch naming, conventional commit title, signed-off
   commits, the project PR template, and a green CI suite before submitting.
 compatibility: Requires git and GitHub CLI (gh)
-allowed-tools: Bash(git:*) Bash(gh:*) Bash(pnpm:*) Bash(mise:*)
+allowed-tools: Bash(git:*) Bash(gh:*) Bash(make:*)
 ---
 
 # Open Pull Request Skill
@@ -15,109 +15,103 @@ allowed-tools: Bash(git:*) Bash(gh:*) Bash(pnpm:*) Bash(mise:*)
 
 Before pushing anything, read these files to understand conventions:
 
-- `AGENTS.md` — architecture, key conventions
-- `CONTRIBUTING.md` — setup, tooling, test layout, commit format
-- `CHANGELOG.md` — recent changes; informs a good `## [Unreleased]` entry
-- `.commitlintrc.js` — enforced commit types and scopes
+- `AGENT.md` — architecture, key conventions, prior gotchas
+- `CONTRIBUTING.md` — setup, tooling, test layers, commit format
+- `.commitlintrc.js` — enforced commit types and scopes (or read the
+  `commit` skill, which mirrors it exactly)
 
-Run the full check suite and confirm it is green:
+There is no `CHANGELOG.md` to update — release notes are generated from
+conventional-commit history by goreleaser at tag time (`changelog: use:
+github` in `.goreleaser.yml`), not hand-maintained per PR.
+
+Run the same checks CI runs, and confirm they're green:
 
 ```sh
-pnpm test
-mise run lint
-mise run build
+make provider
+make test
+make lint
 ```
 
 Never open a PR with a failing check suite. Fix the issue first.
 
 ## Branch naming
 
-Branch from `main`. Match the branch name to the conventional commit type:
+Branch from `main`. Prefix with the commit type the PR's primary change
+uses (see the `commit` skill's Types table):
 
-| Type          | Branch pattern                 |
-| ------------- | ------------------------------ |
-| Bug fix       | `fix/<short-description>`      |
-| New feature   | `feat/<short-description>`     |
-| Documentation | `docs/<short-description>`     |
-| Tooling/build | `chore/<short-description>`    |
-| Refactor      | `refactor/<short-description>` |
+| Primary change | Branch pattern                 |
+| ----------------- | ------------------------------- |
+| Bug fix            | `fix/<short-description>`      |
+| New feature        | `feat/<short-description>`     |
+| Documentation      | `docs/<short-description>`     |
+| CI/CD              | `ci/<short-description>`       |
+| Tooling/build      | `tooling/<short-description>`  |
+| Refactor           | `refactor/<short-description>` |
 
 ## Commits
 
-Every commit must follow the format enforced by `.commitlintrc.js`:
+Every commit must follow the `commit` skill exactly (type, one mandatory
+scope from `provider · sdk · examples · tests · docs · ci · deps · tooling`,
+sentence-case subject, WHY-focused body, DCO `Signed-off-by` via `git commit
+-s`, `Assisted-by:` trailer — never `Co-authored-by:`). Read that skill
+before drafting commits for this PR; don't duplicate its rules here.
 
-```text
-<type>(<scope>): <Subject in sentence case>
-```
-
-**Allowed scopes:** `sdk` · `ui` · `core` · `settings` · `docs` · `deps` · `tooling`
-
-Every commit must include both a DCO sign-off and a cryptographic signature:
-
-```sh
-git commit -s -S -m "feat(sdk): Add S.color() builder for hex color settings"
-```
+Cryptographic signing (`-S`) happens automatically on this machine
+(`commit.gpgsign=true`) - `git commit -s` is enough.
 
 ## Opening the PR
 
-Push the branch, then create the PR using the project template:
+Push the branch, then fill in `.github/PULL_REQUEST_TEMPLATE.md` (don't
+submit it with placeholders still in it) and create the PR:
 
 ```sh
 git push -u origin <branch-name>
 gh pr create \
   --title "<type>(<scope>): <Subject in sentence case>" \
-  --body-file .github/PULL_REQUEST_TEMPLATE.md \
+  --body-file /tmp/pr-body.md \
   --base main
 ```
 
 ## Filling the PR template
 
-The template has six sections. Fill each one as follows.
+The template (`.github/PULL_REQUEST_TEMPLATE.md`) has these sections; fill
+every one, don't delete the checklist.
 
 ### Summary
 
-One sentence, present tense, mirroring the primary commit subject:
-
-> Add `S.color()` builder for hex color settings.
+One sentence, present tense, mirroring the primary commit subject.
 
 ### Why
 
-Explain the motivation — what gap, pain point, or bug triggered this change.
-Link the related issue: `Closes #<number>` (auto-closes on merge) or
-`Refs #<number>` for informational links.
+Explain the motivation. `Closes #<number>` if there's a linked issue
+(auto-closes on merge), otherwise leave the placeholder as `N/A`.
 
 ### What changed
 
-3–7 bullet points covering key implementation decisions. Reviewers should
-understand the approach without reading every diff line.
+Brief bullet list of the approach and key changes - reviewers should
+understand it without reading every diff line.
 
 ### How to validate
 
-Provide copy-pasteable commands:
-
-```sh
-pnpm test
-mise run lint
-npx vitest run --reporter=verbose
-```
-
-If the change touches the TUI panel, add manual steps:
-`/extensions:settings` → navigate to the affected setting → verify behaviour.
+Already pre-filled with `make provider` / `make test` / `make lint`. Add any
+extra manual steps (e.g. `make test_e2e` for a change touching resource
+lifecycle behavior) below it.
 
 ### Impact
 
-- **No breaking changes** — for additions and internal fixes.
-- **Breaking change** — for any change to a public API, a storage key, or an
-  event name. Describe migration steps.
+Check "No breaking changes", or check "Breaking change" and describe it
+(and use `type(scope)!:` with a `BREAKING CHANGE:` footer on the commit
+itself - see the `commit` skill).
 
-### Checklist — items AI agents often miss
+### Checklist
 
-| Item                   | How to satisfy it                                         |
-| ---------------------- | --------------------------------------------------------- |
-| Tests added            | Add a colocated `.spec.ts` file or extend an existing one |
-| `sdk/index.ts` updated | Export new symbols; remove deleted ones                   |
-| `sdk/docs/` updated    | Update reference tables, hook docs, and counts            |
-| Commits signed off     | `git commit -s` on every commit                           |
+Tick every box that's actually true - Code quality (`make test`/`make
+lint` pass locally, new behavior covered by tests), Documentation (schema
+reflects public provider changes, README updated if the public API
+changed, AI-authorship noted if applicable), Commits (Conventional
+Commits with a single required scope, each commit focused), Legal (DCO
+`Signed-off-by` on every commit, CLA note if contributing under an
+employer's copyright). Don't check a box that isn't true.
 
 ## Responding to review feedback
 
@@ -132,10 +126,13 @@ git push --force-with-lease
 For larger review rounds, prefer a new commit (easier to diff):
 
 ```sh
-git commit -s -m "fix(sdk): Address review: rename field to colorValue"
+git commit -s -m "fix(provider): Address review: validate bucket ID before create"
 ```
 
 ## CI
 
-The CI runs `pnpm test`, `mise run lint`, and `mise run build`. If any check is
-red, fix it in a new commit — do not skip hooks or force-merge.
+`.github/workflows/merge_group,pull_request,push.ci.yaml` runs four required
+checks on every PR: Lint, Commit Messages, Build, Tests (the last now
+includes a minimum test-coverage gate). Branch protection on `main` requires
+all four before merge. If any check is red, fix it in a new commit - do not
+skip hooks or force-merge.

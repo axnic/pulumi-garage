@@ -76,16 +76,20 @@ For the **Area** and **Type** dropdown options, read `references/templates.md`.
 
 ### Bug report — required fields
 
-| Field              | Question to ask if unknown                                   |
-| ------------------ | ------------------------------------------------------------ |
-| Summary            | "One sentence: what is the bug?"                             |
-| Area               | "Which part of the project is affected?" (list area options) |
-| Package version    | Infer from `package.json`; ask if ambiguous                  |
-| Steps to reproduce | "What are the minimal steps to reproduce this?"              |
-| Expected behavior  | "What should have happened?"                                 |
-| Actual behavior    | "What actually happened? Paste any errors or stack traces."  |
+Field IDs and requiredness below mirror `.github/ISSUE_TEMPLATE/bug.yaml`
+exactly - re-read that file if it ever changes, rather than trusting this
+table blindly. There is no Area/Package-version dropdown on this template;
+`pulumi about`'s output already carries the provider/plugin version.
 
-**Optional:** Node.js version, additional context.
+| Field (form ID)                          | Question to ask if unknown                                                              |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Describe what happened (`what-happened`) | "What happened? Include any Pulumi commands you ran and relevant error/console output." |
+| Sample program (`sample-program`)        | "Can you share a minimal, self-contained Pulumi program that reproduces this?"           |
+| Output of `pulumi about` (`versions`)    | "Please paste the output of `pulumi about` from the project root."                       |
+
+**Optional:** Log output (`log-output` - output of `pulumi up --logtostderr
+--logflow -v=10`), Affected Resource(s) (`resources` - e.g. `garage:Bucket`),
+Additional context (`ctx`).
 
 ### Feature request — required fields
 
@@ -198,9 +202,9 @@ If `gh issue create` fails, diagnose with:
 - **Never use `--web`** — the agent controls the full workflow non-interactively.
 - **Security vulnerabilities** must NOT be public issues. Redirect the user:
   > "Security issues must be reported privately. Please use:
-  > <https://github.com/xunleii/pi-extension-settings/security/advisories/new>"
+  > <https://github.com/axnic/pulumi-garage/security/advisories/new>"
 - **Questions / discussions** do not belong as issues. Redirect to:
-  > <https://github.com/xunleii/pi-extension-settings/discussions>
+  > <https://github.com/axnic/pulumi-garage/discussions>
 - If the user explicitly asks to skip confirmation, comply but note the policy.
 
 For body templates, dropdown options, and completed examples, read:

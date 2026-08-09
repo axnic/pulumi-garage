@@ -6,27 +6,27 @@ Good and bad examples to calibrate quality before creating an issue.
 
 ### Bug report titles
 
-| ✅ Good                                                 | ❌ Bad                      |
-| ------------------------------------------------------- | --------------------------- |
-| `S.number() validator fires on optional empty field`    | `Bug in number validator`   |
-| `Enter key does not commit edits on number inputs`      | `Enter key issue`           |
-| `Panel crashes on startup when no schema is registered` | `Fix crash`                 |
-| `settings.get() returns undefined for unset nested key` | `settings.get doesn't work` |
+| ✅ Good                                                       | ❌ Bad                     |
+| ---------------------------------------------------------------- | --------------------------- |
+| `Bucket delete fails silently when the bucket still has objects` | `Bucket delete bug`         |
+| `Key.createBucket permission is dropped after an Update`         | `Permission issue`          |
+| `Provider panics when GARAGE_ADMIN_TOKEN is set but empty`       | `Fix crash`                 |
+| `BucketKeyPermission read doesn't detect a revoked grant`        | `Permission read doesn't work` |
 
 **Rule:** The title should describe the **symptom** or **broken behaviour** —
 not the suspected fix, and not a generic label like "bug" or "issue".
 
 ### Feature request titles
 
-| ✅ Good                                                     | ❌ Bad                          |
-| ----------------------------------------------------------- | ------------------------------- |
-| `Add S.color() builder for hex color settings`              | `New builder`                   |
-| `t.pipe() helper for composing transform hooks`             | `Add pipe function`             |
-| `Render documentation Markdown using marked-terminal`       | `Markdown support`              |
-| `Rename description field to documentation with min length` | `description field improvement` |
+| ✅ Good                                                        | ❌ Bad                    |
+| ------------------------------------------------------------------ | --------------------------- |
+| `Add support for Garage bucket lifecycle configuration`            | `Lifecycle support`         |
+| `Support local (per-key) bucket aliases in Bucket`                 | `More alias support`        |
+| `Model Key's global createBucket permission`                       | `createBucket flag`         |
+| `Generate a Java/Maven SDK`                                        | `Java support`              |
 
 **Rule:** The title should describe **what capability is added** or **what
-changes** — concrete enough that a developer understands scope immediately.
+changes** — concrete enough that a maintainer understands scope immediately.
 
 ---
 
@@ -34,63 +34,63 @@ changes** — concrete enough that a developer understands scope immediately.
 
 ### Bug report example
 
-**Title:** `Enter key does not commit edits on number inputs`
+**Title:** `Bucket delete fails silently when the bucket still has objects`
 
 ```markdown
-### Summary
+### Describe what happened
 
-Pressing Enter while editing a number leaf does not save the value; the panel
-stays in edit mode. Text inputs commit on Enter as expected.
+Running `pulumi destroy` on a stack with a non-empty `garage:Bucket`
+reports success, but the bucket and its objects are still present when
+checked against the Garage Admin API afterwards.
 
-### Area
+### Sample program
 
-Extension – TUI panel / UI
+\`\`\`yaml
+name: repro
+runtime: yaml
+resources:
+  myBucket:
+    type: garage:Bucket
+    properties:
+      globalAlias: repro-bucket
+\`\`\`
+(then put at least one object in the bucket via the S3 API before destroying)
 
-### Package version
+### Log output
 
-0.4.0
+(paste of `pulumi up --logtostderr --logflow -v=10` output, or a Gist link
+if long)
 
-### Node.js version
+### Affected Resource(s)
 
-v22.11.0
+garage:Bucket
 
-### Steps to reproduce
+### Output of `pulumi about`
 
-1. Open `/extensions:settings` in pi.
-2. Navigate to any setting with a `S.number()` node.
-3. Press Enter to start editing.
-4. Type a new number.
-5. Press Enter to confirm.
-
-### Expected behavior
-
-The edited value is saved and the panel exits edit mode, identical to text inputs.
-
-### Actual behavior
-
-The cursor remains in edit mode; the value is not persisted. Pressing Escape
-discards the edit as expected.
+(paste of `pulumi about`)
 
 ### Additional context
 
-Tested on macOS 14.4, pi version 1.2.3.
+Expected Garage's own `BucketNotEmpty` error to propagate and fail the
+destroy instead.
 ```
 
 ---
 
 ### Feature request example
 
-**Title:** `Add t.pipe() helper for composing transform hooks`
+**Title:** `Add support for Garage bucket lifecycle configuration`
 
 ````markdown
 ### Summary
 
-Add a `t.pipe(...transforms)` helper that chains multiple transform hooks
-left-to-right, so extension authors don't have to nest calls manually.
+Add a `lifecycleRules` block to the `Bucket` resource so objects can be
+expired automatically via Garage's lifecycle API, instead of requiring a
+separate script.
 
 ### Area
 
-SDK – hooks (validators, transforms, completers, display)
+Provider – resource or datasource logic
 
 ### Type of change
 
@@ -98,35 +98,38 @@ New capability (adds something that doesn't exist)
 
 ### Motivation / problem
 
-When multiple transforms are needed (e.g., trim, then normalise URL, then
-lowercase), authors write `t.trim(t.normalizeUrl(t.lowercase(value)))`.
-The nesting order is counter-intuitive (right-to-left) and breaks when
-adding a fourth transform.
+Garage supports per-bucket lifecycle rules (expiration, abort incomplete
+multipart uploads) via its Admin API, but this provider has no way to
+configure them - users currently have to call the Garage CLI or Admin API
+directly outside of Pulumi, which the rest of the bucket's config doesn't
+need.
 
 ### Proposed solution
 
-```ts
-// Before
-transform: (v) => t.trim(t.normalizeUrl(v));
-
-// After
-transform: t.pipe(t.trim, t.normalizeUrl);
+```yaml
+resources:
+  myBucket:
+    type: garage:Bucket
+    properties:
+      lifecycleRules:
+        - id: expire-old-uploads
+          prefix: tmp/
+          expiration:
+            days: 7
 ```
-````
 
-`t.pipe` accepts an arbitrary number of transform functions and returns a
-single function that applies them left-to-right.
+Maps onto Garage's `PUT /v2/UpdateBucket` `lifecycle` field the same way
+`website`/`quotas` are already handled in `bucket_resource.go`.
 
 ### Alternatives considered
 
-Operator-style pipeline (`value |> t.trim |> t.normalizeUrl`) was considered
-but the TC39 pipeline proposal is still Stage 2 and cannot be used in a
-library targeting Node ≥ 22.
+A separate `BucketLifecycleRule` resource (mirroring `BucketKeyPermission`)
+was considered, but Garage's lifecycle config is a single ordered list per
+bucket, not independently addressable grants - a nested block matches the
+underlying API shape better.
 
 ### Additional context
 
-Related: #42 (t.normalizeUrl implementation).
-
-```
-
-```
+See Garage's [lifecycle
+documentation](https://garagehq.deuxfleurs.fr/documentation/reference-manual/lifecycle-configuration/).
+````

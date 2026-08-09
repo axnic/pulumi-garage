@@ -1,72 +1,74 @@
 ---
 name: release
 description: >
-  Creates a versioned release for this project. Use when asked to cut a
-  release, bump a version, create an RC, or publish a new version. Triggers
-  the release workflow via the GitHub CLI and explains the bump type options.
-compatibility: Requires GitHub CLI (gh)
-allowed-tools: Bash(gh:*)
+  Cuts a versioned release of pulumi-garage (provider binary + SDKs). Use
+  when asked to cut a release, tag a version, publish a new version, or
+  explains the release process. Triggers the tag-push release flow and
+  explains required registry secrets.
+compatibility: Requires git and GitHub CLI (gh)
+allowed-tools: Bash(git:*) Bash(gh:*)
 ---
 
 # Release Skill
 
-Releases are fully automated via the `workflow_dispatch.release.yaml` workflow.
-Never bump versions or create tags manually — always go through the workflow.
+Releases are triggered by pushing a semver tag - there is no
+`workflow_dispatch` release trigger in this repo. Never hand-build or
+hand-publish an SDK for a release; always go through the tag-push workflow.
+See [RELEASING.md](../../../RELEASING.md) for the full picture (this skill
+is a condensed operational summary of it - if they ever disagree,
+RELEASING.md is the source of truth).
 
-## Trigger a release
+## Pre-flight
 
-```sh
-gh workflow run workflow_dispatch.release.yaml \
-  --repo axnic/pi-extension-settings \
-  --field bump=<bump-type>
-```
+1. Confirm `main` is green: `gh run list --branch main --limit 1`.
+2. Confirm the secrets a release depends on are configured, or accept that
+   the unconfigured ones will be skipped rather than fail (see RELEASING.md's
+   Required secrets table: `PYPI_API_TOKEN` is the only stored secret; npm
+   and NuGet use OIDC trusted publishing).
 
-Add `--field notes="..."` to override the auto-generated release notes.
-
-## Bump types
-
-| Type       | What it does                                                                 |
-| ---------- | ---------------------------------------------------------------------------- |
-| `patch`    | Stable release — increments patch from last stable tag (e.g. 0.1.0 → 0.1.1)  |
-| `minor`    | Stable release — increments minor (e.g. 0.1.0 → 0.2.0)                       |
-| `major`    | Stable release — increments major (e.g. 0.1.0 → 1.0.0)                       |
-| `rc-patch` | Release candidate for next patch (e.g. 0.1.1-rc.1, or increments rc counter) |
-| `rc-minor` | Release candidate for next minor                                             |
-| `rc-major` | Release candidate for next major                                             |
-
-**Rule of thumb:**
-
-- Use `rc-*` first to validate on npm before a stable release.
-- Use `patch` for bug fixes and CI/tooling changes with no API impact.
-- Use `minor` for new hooks, builders, or SDK additions (backwards-compatible).
-- Use `major` for breaking changes to the public SDK API or storage keys.
-
-## What the workflow does
-
-1. Computes the next version from the last git tag.
-2. Bumps `version` in `package.json` and `sdk/package.json`.
-3. Runs typecheck + tests + build (fails fast if anything is red).
-4. Commits the version bump and pushes a `v<version>` tag.
-5. Generates release notes (deterministic draft + Copilot polish).
-6. Opens a GitHub Release (`--prerelease` for RC, `--latest` for stable).
-7. `release.publish.yaml` triggers automatically and publishes to npm.
-
-## Publishing to npm
-
-Publishing is handled by `release.publish.yaml` — it fires automatically
-when a GitHub Release is published. It:
-
-- Validates (typecheck + tests + build)
-- Generates CycloneDX SBOMs via Syft
-- Publishes all workspace packages to npm with OIDC provenance (`--provenance`)
-- Signs SBOMs and publish summary keylessly via cosign (Sigstore/Rekor)
-- Attaches all artefacts to the GitHub Release
-
-No npm token is required — publishing uses npm trusted publishers (OIDC).
-
-## Checking a release run
+## Cutting a release
 
 ```sh
-gh run list --repo axnic/pi-extension-settings --workflow=workflow_dispatch.release.yaml --limit=5
-gh run view <run-id> --repo axnic/pi-extension-settings
+git tag v1.0.0          # or v1.0.0-alpha.1 for a prerelease
+git push origin v1.0.0
 ```
+
+Prerelease tags (any semver tag with a `-` suffix) are marked as a GitHub
+prerelease automatically (`release.prerelease: auto` in `.goreleaser.yml`)
+and published to npm under the `next` dist-tag instead of `latest`.
+
+## What the tag push triggers
+
+`.github/workflows/push.release.yaml`:
+
+1. Builds the provider binary for darwin/linux/windows (amd64+arm64) via
+   GoReleaser and publishes a GitHub Release with checksums - this alone
+   is enough for `pulumi plugin install resource garage <version>` to work.
+2. Pushes a second tag, `sdk/go/pulumi-garage/vX.Y.Z`, so the Go SDK
+   resolves cleanly via `go get` despite living in a repo subdirectory.
+3. Publishes the Node.js, Python, and .NET SDKs to their registries - each
+   independently gated on its own secret/trusted-publisher setup; an
+   unconfigured registry is skipped, not failed.
+
+## Watching a release run
+
+```sh
+gh run list --repo axnic/pulumi-garage --workflow=push.release.yaml --limit 5
+gh run view <run-id> --repo axnic/pulumi-garage
+```
+
+## Verifying afterward
+
+```sh
+pulumi plugin install resource garage <version>
+```
+
+Then check whichever registries (npmjs.com, pypi.org, nuget.org) you expect
+this release to have reached.
+
+## Retrying a failed publish
+
+Not all registries tolerate a blind retry - see RELEASING.md's "Retrying a
+failed publish" section. In short: the GitHub Release and Go SDK tag steps
+are safe to re-run; check npm/PyPI's own state before retrying those (NuGet's
+`--skip-duplicate` is more forgiving).
