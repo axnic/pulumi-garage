@@ -122,3 +122,10 @@ func TestAPIErrorNotFoundOnlyTrueFor404(t *testing.T) {
 	err := &APIError{StatusCode: http.StatusBadRequest, Code: "InvalidRequest"}
 	assert.False(t, err.NotFound())
 }
+
+func TestAPIErrorErrorFormatsMessage(t *testing.T) {
+	t.Parallel()
+
+	err := &APIError{StatusCode: http.StatusNotFound, Code: "NoSuchBucket", Message: "Bucket not found: abc123"}
+	assert.Equal(t, "garage admin api: 404 NoSuchBucket: Bucket not found: abc123", err.Error())
+}

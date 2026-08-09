@@ -257,6 +257,41 @@ func TestBucketDeletePropagatesOtherErrors(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestBucketCreateDryRunSkipsAPICalls(t *testing.T) {
+	t.Parallel()
+
+	alias := testBucketAlias
+	req := infer.CreateRequest[BucketArgs]{
+		Name:   "preview-name",
+		Inputs: BucketArgs{GlobalAlias: &alias},
+		DryRun: true,
+	}
+	resp, err := Bucket{}.Create(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Equal(t, "preview-name", resp.ID, "dry run must not call the API for an ID, so it echoes the proposed name")
+	require.NotNil(t, resp.Output.GlobalAlias)
+	assert.Equal(t, testBucketAlias, *resp.Output.GlobalAlias)
+}
+
+func TestBucketUpdateDryRunPreservesCreatedAt(t *testing.T) {
+	t.Parallel()
+
+	alias := "new-alias"
+	req := infer.UpdateRequest[BucketArgs, BucketState]{
+		ID:     "bucket-id-123",
+		State:  BucketState{CreatedAt: "2026-07-14T10:04:53.512Z"},
+		Inputs: BucketArgs{GlobalAlias: &alias},
+		DryRun: true,
+	}
+	resp, err := Bucket{}.Update(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Equal(t, "2026-07-14T10:04:53.512Z", resp.Output.CreatedAt, "dry run must carry the existing CreatedAt forward")
+	require.NotNil(t, resp.Output.GlobalAlias)
+	assert.Equal(t, "new-alias", *resp.Output.GlobalAlias)
+}
+
 // Compile-time assertions that Bucket satisfies the infer resource
 // interfaces we rely on, and that the real client satisfies bucketAPI.
 var (

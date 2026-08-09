@@ -137,6 +137,37 @@ func TestKeyDeleteIsIdempotent(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestKeyCreateDryRunSkipsAPICalls(t *testing.T) {
+	t.Parallel()
+
+	name := "preview-key"
+	req := infer.CreateRequest[KeyArgs]{Name: "preview-id", Inputs: KeyArgs{Name: &name}, DryRun: true}
+	resp, err := Key{}.Create(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Equal(t, "preview-id", resp.ID)
+	require.NotNil(t, resp.Output.Name)
+	assert.Equal(t, "preview-key", *resp.Output.Name)
+}
+
+func TestKeyUpdateDryRunPreservesSecret(t *testing.T) {
+	t.Parallel()
+
+	newName := "renamed"
+	req := infer.UpdateRequest[KeyArgs, KeyState]{
+		ID:     "GK123",
+		State:  KeyState{AccessKeyID: "GK123", SecretAccessKey: "existing-secret"},
+		Inputs: KeyArgs{Name: &newName},
+		DryRun: true,
+	}
+	resp, err := Key{}.Update(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Equal(t, "existing-secret", resp.Output.SecretAccessKey, "dry run must not lose the captured secret")
+	require.NotNil(t, resp.Output.Name)
+	assert.Equal(t, "renamed", *resp.Output.Name)
+}
+
 var (
 	_ infer.CustomResource[KeyArgs, KeyState] = Key{}
 	_ infer.CustomRead[KeyArgs, KeyState]     = Key{}

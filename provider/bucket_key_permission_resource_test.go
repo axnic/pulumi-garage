@@ -239,6 +239,36 @@ func TestBucketKeyPermissionDeleteIsIdempotentWhenBucketGone(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestBucketKeyPermissionCreateDryRunSkipsAPICalls(t *testing.T) {
+	t.Parallel()
+
+	args := BucketKeyPermissionArgs{
+		BucketID: "bucket-id", AccessKeyID: "GK123",
+		Permissions: PermissionsArgs{Read: true},
+	}
+	req := infer.CreateRequest[BucketKeyPermissionArgs]{Name: "preview", Inputs: args, DryRun: true}
+	resp, err := BucketKeyPermission{}.Create(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Equal(t, "bucket-id/GK123", resp.ID, "dry run must still compute the synthetic composite ID")
+	assert.True(t, resp.Output.Permissions.Read)
+}
+
+func TestBucketKeyPermissionUpdateDryRun(t *testing.T) {
+	t.Parallel()
+
+	newArgs := BucketKeyPermissionArgs{
+		BucketID: "bucket-id", AccessKeyID: "GK123",
+		Permissions: PermissionsArgs{Write: true},
+	}
+	req := infer.UpdateRequest[BucketKeyPermissionArgs, BucketKeyPermissionState]{
+		ID: "bucket-id/GK123", Inputs: newArgs, DryRun: true,
+	}
+	resp, err := BucketKeyPermission{}.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, resp.Output.Permissions.Write)
+}
+
 var (
 	_ infer.CustomResource[BucketKeyPermissionArgs, BucketKeyPermissionState] = BucketKeyPermission{}
 	_ infer.CustomRead[BucketKeyPermissionArgs, BucketKeyPermissionState]     = BucketKeyPermission{}
