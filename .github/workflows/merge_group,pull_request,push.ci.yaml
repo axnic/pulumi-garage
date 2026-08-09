@@ -10,7 +10,11 @@
 # What it does:
 #   1. Runs golangci-lint on Go provider code
 #   2. Validates Conventional Commits on every PR commit (or, on a direct
-#      push to main, the commits introduced by that push)
+#      push to main, the commits introduced by that push) - skipped for
+#      Dependabot PRs, since Dependabot's own commit messages never carry a
+#      type(scope): prefix; the dependabot-auto-merge workflow sets a
+#      compliant subject at squash-merge time instead, and this job's push
+#      step re-validates that squashed commit once it lands on main.
 #   3. Builds the provider binary via make provider
 #   4. Runs provider unit tests via make test
 #
@@ -70,7 +74,7 @@ jobs:
           cache: true
 
       - name: Validate commit messages
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && github.actor != 'dependabot[bot]'
         run: |
           commitlint \
             --from ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }} \
