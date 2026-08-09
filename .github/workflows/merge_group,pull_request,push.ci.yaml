@@ -12,7 +12,8 @@
 #   2. Validates Conventional Commits on every PR commit (or, on a direct
 #      push to main, the commits introduced by that push)
 #   3. Builds the provider binary via make provider
-#   4. Runs provider unit tests via make test
+#   4. Runs provider unit tests via make test, and fails if total statement
+#      coverage drops below a floor (see the coverage step below)
 #
 # The E2E suite (make test_e2e, against a real dockerized Garage cluster)
 # does NOT run here - it runs once per supported Garage version, in its own
@@ -120,3 +121,14 @@ jobs:
 
       - name: Run provider tests
         run: make test
+
+      # test_provider (part of make test) writes provider/coverage.txt but
+      # nothing previously read it - this is a floor, not a target: it
+      # catches coverage regressions without pinning to today's exact
+      # number. Raise it as coverage improves; never lower it to make a
+      # failing PR pass.
+      - name: Enforce minimum test coverage
+        run: |
+          total=$(go tool cover -func=provider/coverage.txt | tail -1 | awk '{print $NF}' | tr -d '%')
+          echo "Total statement coverage: ${total}%"
+          awk -v total="$total" 'BEGIN { if (total + 0 < 60) { print "coverage " total "% is below the 60% floor"; exit 1 } }'
