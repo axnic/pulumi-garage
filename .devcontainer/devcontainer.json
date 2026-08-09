@@ -13,6 +13,23 @@
     // separate disposable stack (see docker-compose.yml's comment).
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },
+  // The mise feature only installs the `mise` binary itself (see its own
+  // install.sh) - it does not wire up shell activation. Without this,
+  // `go`/`pulumi`/`golangci-lint`/etc. (installed by postCreateCommand into
+  // ~/.local/share/mise/shims) are on PATH only inside whatever the
+  // mise-vscode extension patches for its own integrated terminal, not for
+  // a plain `docker exec`, a VS Code task, or another editor/Codespace
+  // client - which broke CONTRIBUTING.md's "make lint/make test work
+  // immediately" promise. remoteEnv (not containerEnv!) fixes it for every
+  // remote process the CLI manages (terminals, tasks, exec) without
+  // touching the container's own boot-time PATH - containerEnv does touch
+  // that for a compose-based devcontainer, and `${containerEnv:PATH}`
+  // resolves empty at container-creation time there, which clobbers PATH
+  // entirely and crash-loops the container (`sleep: not found`) - verified
+  // by hitting that exact crash before switching to remoteEnv.
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/share/mise/shims"
+  },
   "forwardPorts": [3900, 3903],
   "portsAttributes": {
     "3900": { "label": "Garage S3 API" },
