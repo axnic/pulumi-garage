@@ -92,8 +92,16 @@ Commands:
 CI (`.github/workflows/merge_group,pull_request,push.ci.yaml`) runs lint, commitlint,
 build, and unit tests on every pull request, merge-queue entry, and push to `main` -
 this repo takes commits directly on `main` without a PR for most changes, so the push
-trigger is what actually validates them. The E2E suite runs separately, once per
-supported Garage version - see the [Compatibility matrix](README.md#compatibility).
+trigger is what actually validates them. The test job also enforces a minimum total
+statement coverage of 60% (computed from `provider/coverage.txt` via `go tool cover
+-func`) - a floor that only ever goes up as coverage improves, not a target to hit
+exactly. The E2E suite runs separately, once per supported Garage version - see the
+[Compatibility matrix](README.md#compatibility).
+
+Branch protection on `main` requires the Lint, Commit Messages, Build, and Tests
+checks to pass before a pull request or merge-queue entry can merge. It doesn't gate
+direct pushes to `main` - the push trigger above still validates those after the
+fact.
 
 ## Building and generating the SDKs
 
