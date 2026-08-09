@@ -41,3 +41,11 @@ services:
       GARAGE_ADMIN_ENDPOINT: http://localhost:3903
       GARAGE_ADMIN_TOKEN: 131a3835a4f69caebd17d0d13f53b332eb44cf2aef6bd27b
       GARAGE_S3_ENDPOINT: http://localhost:3900
+      # mise refuses to auto-install a *new* asdf/vfox plugin (as opposed to
+      # a new version of an already-installed one) without explicit
+      # consent, even in a script - CI gets this for free because GitHub
+      # Actions sets CI=true and mise treats that as consent, but nothing
+      # sets that inside a devcontainer. Without this, postCreateCommand
+      # fails outright the first time vfox:version-fox/vfox-dotnet (or any
+      # future new tool) needs installing. See mise's --yes flag.
+      MISE_YES: "1"
