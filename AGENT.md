@@ -1,7 +1,7 @@
 # Tech Documentation Analysis
 
 ## Project
-- Last Commit: 33f1e4d69fd6ea9139c56f28b3a20911abb93910
+- Last Commit: 9962f71f75e50e229f84563268570ea3c0497019
 - Stack: Go 1.25 (pulumi-go-provider v1.1.2), Pulumi CLI 3.206.0, Docker (E2E only)
 - Doc Language: en
 - Module: github.com/axnic/pulumi-garage
@@ -40,6 +40,78 @@
   merge_group, pull_request, AND push to main (commits land on main directly,
   without a PR, so the push trigger is what actually validates them). E2E moved
   out of this file into a per-Garage-version matrix — see next point.
+- Coverage gate (test job's last step, "Enforce minimum test coverage"):
+  reads `provider/coverage.txt` (`make test` always produced this file,
+  nothing consumed it before this step existed), runs `go tool cover -func`
+  for total statement coverage, and fails the job below 60%. This is a
+  floor/ratchet, not a target — raise it as coverage improves, never lower it
+  just to unblock a failing PR. Provider package coverage went 47.2% → 54.8%
+  to clear it (new tests for the previously-0%-covered DryRun branches of the
+  Bucket/Key/BucketKeyPermission Create/Update adapter methods, plus a
+  Provider() smoke test and an APIError.Error() test); blended
+  provider+garageclient total is ~63.5%.
+- Branch protection on `main` (a live GitHub repo setting, not a file in this
+  repo) requires 4 status checks — Lint, Commit Messages, Build, Tests —
+  before a PR/merge-queue merge. It does NOT gate direct `git push` to main
+  (classic branch-protection required-status-checks only covers PR/merge-queue
+  merges, not raw pushes), so the direct-push-to-main workflow described above
+  is unaffected.
+- commitlint job's "Validate commit messages" step (non-push path) is now
+  skipped when `github.actor == 'dependabot[bot]'` — Dependabot's own raw
+  commit messages never carry a `type(scope):` prefix, so they'd always fail.
+  The push-to-main step (unchanged) still validates the final squashed commit
+  once it lands on main, so nothing non-compliant reaches main unvalidated.
+- Dependabot (`.github/dependabot.yml`): `open-pull-requests-limit` used to be
+  0 for all 3 ecosystems (github-actions, gomod, npm in /examples) — routine
+  version-update PRs were entirely disabled, only security-advisory PRs opened
+  automatically (Dependabot's separate security-update feature ignores the
+  limit). Raised to 10 so routine PRs open normally. New workflow
+  `.github/workflows/pull_request.dependabot-auto-merge.yaml` uses
+  `dependabot/fetch-metadata` to read each Dependabot PR's semver update-type
+  and GHSA id: patch updates, or any security update (GHSA id present) at any
+  semver level, get auto-approved and merged via `gh pr merge --auto
+  --squash`; minor/major non-security updates are left as open PRs for manual
+  review. The workflow builds its own commit subject
+  (`build(deps): Bump <names> from <old> to <new>`) instead of reusing
+  Dependabot's PR title, because that title is never sentence-case (starts
+  lowercase "bump") and for dev dependencies uses scope `deps-dev`, which
+  isn't in `.commitlintrc.js`'s scope-enum (only `deps` is allowed) — this is
+  why routine PRs were disabled in the first place, and why the workaround
+  constructs a compliant message rather than trusting Dependabot's own. Two
+  live GitHub repo settings were one-time prerequisites: "Allow auto-merge"
+  (was off, needed for `gh pr merge --auto`) and Discussions (was off —
+  enabled because `.github/ISSUE_TEMPLATE/config.yml` already links to
+  https://github.com/axnic/pulumi-garage/discussions, which was a dead link
+  before this).
+- `make test_all` was removed from the Makefile — it referenced
+  `provider/pkg` and `tests/sdk/{nodejs,python,dotnet,go}`, none of which
+  exist in this repo (leftover from the `pulumi-resource-provider-boilerplate`
+  template this repo was generated from). Never called by CI or documented in
+  CONTRIBUTING.md.
+- `.agents/skills/`: 3 of 6 skill files were found to be stale copies from an
+  unrelated sibling project (`pi-extension-settings`, a Node.js/npm tool with
+  a different scope-enum, different repo owner
+  `xunleii/pi-extension-settings`, different release mechanism) and have been
+  corrected — don't rediscover this: `open-pr/SKILL.md` (wrong
+  scopes/check-commands/doc filenames/branch-naming table — now correct,
+  defers to `commit/SKILL.md` for commit-message rules instead of duplicating
+  them, and documents the 4 required branch-protection checks above);
+  `release/SKILL.md` (this repo's actual release trigger is `git tag vX.Y.Z
+  && git push origin vX.Y.Z` → `push.release.yaml`, not a `workflow_dispatch`
+  workflow — now points to RELEASING.md as the source of truth); and
+  `create-issue/SKILL.md` + `references/templates.md` +
+  `references/examples.md` (two hardcoded URLs pointed at
+  `xunleii/pi-extension-settings`; bug-report required-fields table and
+  templates/examples rewritten to match this repo's actual
+  `.github/ISSUE_TEMPLATE/bug.yaml`/`feature.yml`, which were already
+  correct — only the skill's docs about them were wrong). `release-notes/`
+  (`SKILL.md` + `references/examples.md`) was deleted entirely — it described
+  a "deterministic draft + Copilot polish" release-notes pipeline that
+  doesn't exist anywhere in this repo (`.goreleaser.yml` uses `changelog:
+  use: github`, GitHub's native auto-generated notes), so it was pure
+  fiction for this project. `commit/SKILL.md` and
+  `pulumi-provider-review/SKILL.md` were checked and found already accurate
+  — no changes made there.
 - Compatibility matrix (added for the version-matrix/devcontainer PR): four
   thin workflow files, `.github/workflows/merge_group,pull_request,push.e2e-garage-2.{0,1,2,3}.yaml`,
   each calling `.github/workflows/_reusable-e2e.yaml` (a `workflow_call`
@@ -103,7 +175,37 @@
     `requireGarage(t)`'s `t.Skip`), because `GARAGE_ADMIN_ENDPOINT` happens
     to already be set there. Documented in README as a feature, not
     "flakiness".
+  - Gotcha: a fresh build's `postCreateCommand` failed outright with `mise
+    ERROR Failed to install vfox:version-fox/vfox-dotnet@8.0.20: run with
+    --yes to install plugin automatically` - mise refuses to auto-install a
+    *new* asdf/vfox plugin without explicit consent. GitHub Actions CI gets
+    this for free (it sets `CI=true`, which mise treats as consent) but
+    nothing set that inside the devcontainer. Fixed by adding `MISE_YES:
+    "1"` to the `dev` service's `environment:` block in
+    `.devcontainer/docker-compose.yml`.
+  - Gotcha: even after `postCreateCommand` succeeded, a plain terminal/exec
+    session inside the container had NO mise-installed tools on PATH at all
+    (`go`, `pulumi`, `golangci-lint`, etc. all "command not found") -
+    `make lint` and `make test` did NOT "work immediately" as
+    CONTRIBUTING.md claims. The `ghcr.io/devcontainers-extra/features/mise:1`
+    feature only installs the `mise` binary itself (confirmed by reading its
+    install.sh) - it configures no shell activation or PATH wiring, and this
+    repo's config never added any either; it only ever worked, if it did, via
+    the `hverlin.mise-vscode` VS Code extension patching PATH for its own
+    integrated terminal specifically - not for a plain `docker exec`, a VS
+    Code task, another editor, or Codespaces. Fixed with a `remoteEnv` block
+    in `.devcontainer/devcontainer.json` appending
+    `/home/vscode/.local/share/mise/shims` to PATH. `containerEnv` (not
+    `remoteEnv`) was tried first and crash-looped the container (`sleep: not
+    found`) - for a compose-based devcontainer, `containerEnv`'s
+    `${containerEnv:PATH}` substitution resolves empty at container-creation
+    time and clobbers the base PATH entirely; `remoteEnv` applies only to the
+    CLI's managed remote processes (terminals/exec/postCreate) and doesn't
+    touch container boot, which is why it's the correct one to use here.
   - Verified end-to-end with the real `@devcontainers/cli` (`npx
     @devcontainers/cli up --workspace-folder .`), not just read for
-    plausibility - caught both gotchas above by actually building and
-    running it, twice.
+    plausibility - caught all four gotchas above by actually building and
+    running it. A full fresh build followed by `make lint` (0 issues) and
+    `make test` (including the example-lifecycle E2E tests against the real
+    always-on Garage instance, per CONTRIBUTING.md's documented devcontainer
+    behavior) were verified passing end-to-end after both new fixes.
