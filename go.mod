@@ -4,7 +4,7 @@ go 1.25.11
 
 require (
 	github.com/minio/minio-go/v7 v7.2.1
-	github.com/pulumi/providertest v0.6.0
+	github.com/pulumi/providertest v0.7.0
 	github.com/pulumi/pulumi-go-provider v1.4.1
 	github.com/pulumi/pulumi/sdk/v3 v3.253.0
 	github.com/stretchr/testify v1.11.1
