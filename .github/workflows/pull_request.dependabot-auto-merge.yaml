@@ -20,6 +20,14 @@
 #      lands on main and gets re-validated there.
 #   3. Minor/major, non-security updates are left untouched - they stay
 #      open for manual review, per .github/dependabot.yml's policy.
+#   4. github-actions ecosystem updates are approved but never auto-merged:
+#      their diff always edits a workflow file's `uses:` line, and the
+#      built-in GITHUB_TOKEN can never merge a commit that touches
+#      .github/workflows/** ("refusing to allow a GitHub App to create or
+#      update workflow ... without `workflows` permission") - that's a
+#      hard GitHub restriction no `permissions:` block can grant. These
+#      stay open for a human to merge, which also isn't a bad thing:
+#      action-version bumps touch CI's security surface directly.
 #
 # GitHub's native auto-merge only takes effect once CI (Lint, Commit
 # Messages, Build, Tests) reports success, so this can run immediately
@@ -53,10 +61,22 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           alert-lookup: true
 
-      - name: Approve and enable auto-merge
+      - name: Approve
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.metadata.outputs.ghsa-id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr review "$PR_URL" --approve \
+            --body "Auto-approved: patch/security dependency update."
+
+      - name: Enable auto-merge
+        if: |
+          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+           steps.metadata.outputs.ghsa-id != '') &&
+          steps.metadata.outputs.package-ecosystem != 'github_actions'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
@@ -64,8 +84,6 @@ jobs:
           PREVIOUS_VERSION: ${{ steps.metadata.outputs.previous-version }}
           NEW_VERSION: ${{ steps.metadata.outputs.new-version }}
         run: |
-          gh pr review "$PR_URL" --approve \
-            --body "Auto-approved: patch/security dependency update."
           gh pr merge "$PR_URL" --auto --squash \
             --subject "build(deps): Bump $DEPENDENCY_NAMES from $PREVIOUS_VERSION to $NEW_VERSION" \
             --body ""
