@@ -14,6 +14,11 @@ else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
 
+accessKeyId: Optional[str]
+"""
+An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+"""
+
 adminToken: Optional[str]
 """
 A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
@@ -22,5 +27,20 @@ A bearer token authorized against the Garage Admin API. Falls back to the GARAGE
 endpoint: Optional[str]
 """
 The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
+"""
+
+s3Endpoint: Optional[str]
+"""
+The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+"""
+
+s3Region: Optional[str]
+"""
+The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+"""
+
+secretAccessKey: Optional[str]
+"""
+The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
 """
 

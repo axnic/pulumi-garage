@@ -32,6 +32,16 @@ namespace Axnic.Pulumi.Garage
 
         private static readonly global::Pulumi.Config __config = new global::Pulumi.Config("garage");
 
+        private static readonly __Value<string?> _accessKeyId = new __Value<string?>(() => __config.Get("accessKeyId"));
+        /// <summary>
+        /// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+        /// </summary>
+        public static string? AccessKeyId
+        {
+            get => _accessKeyId.Get();
+            set => _accessKeyId.Set(value);
+        }
+
         private static readonly __Value<string?> _adminToken = new __Value<string?>(() => __config.Get("adminToken"));
         /// <summary>
         /// A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
@@ -50,6 +60,36 @@ namespace Axnic.Pulumi.Garage
         {
             get => _endpoint.Get();
             set => _endpoint.Set(value);
+        }
+
+        private static readonly __Value<string?> _s3Endpoint = new __Value<string?>(() => __config.Get("s3Endpoint"));
+        /// <summary>
+        /// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        /// </summary>
+        public static string? S3Endpoint
+        {
+            get => _s3Endpoint.Get();
+            set => _s3Endpoint.Set(value);
+        }
+
+        private static readonly __Value<string?> _s3Region = new __Value<string?>(() => __config.Get("s3Region"));
+        /// <summary>
+        /// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        /// </summary>
+        public static string? S3Region
+        {
+            get => _s3Region.Get();
+            set => _s3Region.Set(value);
+        }
+
+        private static readonly __Value<string?> _secretAccessKey = new __Value<string?>(() => __config.Get("secretAccessKey"));
+        /// <summary>
+        /// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+        /// </summary>
+        public static string? SecretAccessKey
+        {
+            get => _secretAccessKey.Get();
+            set => _secretAccessKey.Set(value);
         }
 
     }

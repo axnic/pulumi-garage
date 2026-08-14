@@ -13,6 +13,139 @@ import (
 
 var _ = internal.GetEnvOrDefault
 
+type LifecycleRuleArgs struct {
+	// Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically.
+	AbortIncompleteMultipartUploadDays *int `pulumi:"abortIncompleteMultipartUploadDays"`
+	// Whether this rule is active.
+	Enabled bool `pulumi:"enabled"`
+	// Delete objects this many days after creation. Omit to not expire objects by age.
+	ExpirationDays *int `pulumi:"expirationDays"`
+	// A unique identifier for this rule within the bucket.
+	Id string `pulumi:"id"`
+	// Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket.
+	Prefix *string `pulumi:"prefix"`
+}
+
+// LifecycleRuleArgsInput is an input type that accepts LifecycleRuleArgsArgs and LifecycleRuleArgsOutput values.
+// You can construct a concrete instance of `LifecycleRuleArgsInput` via:
+//
+//	LifecycleRuleArgsArgs{...}
+type LifecycleRuleArgsInput interface {
+	pulumi.Input
+
+	ToLifecycleRuleArgsOutput() LifecycleRuleArgsOutput
+	ToLifecycleRuleArgsOutputWithContext(context.Context) LifecycleRuleArgsOutput
+}
+
+type LifecycleRuleArgsArgs struct {
+	// Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically.
+	AbortIncompleteMultipartUploadDays pulumi.IntPtrInput `pulumi:"abortIncompleteMultipartUploadDays"`
+	// Whether this rule is active.
+	Enabled pulumi.BoolInput `pulumi:"enabled"`
+	// Delete objects this many days after creation. Omit to not expire objects by age.
+	ExpirationDays pulumi.IntPtrInput `pulumi:"expirationDays"`
+	// A unique identifier for this rule within the bucket.
+	Id pulumi.StringInput `pulumi:"id"`
+	// Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket.
+	Prefix pulumi.StringPtrInput `pulumi:"prefix"`
+}
+
+func (LifecycleRuleArgsArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*LifecycleRuleArgs)(nil)).Elem()
+}
+
+func (i LifecycleRuleArgsArgs) ToLifecycleRuleArgsOutput() LifecycleRuleArgsOutput {
+	return i.ToLifecycleRuleArgsOutputWithContext(context.Background())
+}
+
+func (i LifecycleRuleArgsArgs) ToLifecycleRuleArgsOutputWithContext(ctx context.Context) LifecycleRuleArgsOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(LifecycleRuleArgsOutput)
+}
+
+// LifecycleRuleArgsArrayInput is an input type that accepts LifecycleRuleArgsArray and LifecycleRuleArgsArrayOutput values.
+// You can construct a concrete instance of `LifecycleRuleArgsArrayInput` via:
+//
+//	LifecycleRuleArgsArray{ LifecycleRuleArgsArgs{...} }
+type LifecycleRuleArgsArrayInput interface {
+	pulumi.Input
+
+	ToLifecycleRuleArgsArrayOutput() LifecycleRuleArgsArrayOutput
+	ToLifecycleRuleArgsArrayOutputWithContext(context.Context) LifecycleRuleArgsArrayOutput
+}
+
+type LifecycleRuleArgsArray []LifecycleRuleArgsInput
+
+func (LifecycleRuleArgsArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]LifecycleRuleArgs)(nil)).Elem()
+}
+
+func (i LifecycleRuleArgsArray) ToLifecycleRuleArgsArrayOutput() LifecycleRuleArgsArrayOutput {
+	return i.ToLifecycleRuleArgsArrayOutputWithContext(context.Background())
+}
+
+func (i LifecycleRuleArgsArray) ToLifecycleRuleArgsArrayOutputWithContext(ctx context.Context) LifecycleRuleArgsArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(LifecycleRuleArgsArrayOutput)
+}
+
+type LifecycleRuleArgsOutput struct{ *pulumi.OutputState }
+
+func (LifecycleRuleArgsOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*LifecycleRuleArgs)(nil)).Elem()
+}
+
+func (o LifecycleRuleArgsOutput) ToLifecycleRuleArgsOutput() LifecycleRuleArgsOutput {
+	return o
+}
+
+func (o LifecycleRuleArgsOutput) ToLifecycleRuleArgsOutputWithContext(ctx context.Context) LifecycleRuleArgsOutput {
+	return o
+}
+
+// Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically.
+func (o LifecycleRuleArgsOutput) AbortIncompleteMultipartUploadDays() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v LifecycleRuleArgs) *int { return v.AbortIncompleteMultipartUploadDays }).(pulumi.IntPtrOutput)
+}
+
+// Whether this rule is active.
+func (o LifecycleRuleArgsOutput) Enabled() pulumi.BoolOutput {
+	return o.ApplyT(func(v LifecycleRuleArgs) bool { return v.Enabled }).(pulumi.BoolOutput)
+}
+
+// Delete objects this many days after creation. Omit to not expire objects by age.
+func (o LifecycleRuleArgsOutput) ExpirationDays() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v LifecycleRuleArgs) *int { return v.ExpirationDays }).(pulumi.IntPtrOutput)
+}
+
+// A unique identifier for this rule within the bucket.
+func (o LifecycleRuleArgsOutput) Id() pulumi.StringOutput {
+	return o.ApplyT(func(v LifecycleRuleArgs) string { return v.Id }).(pulumi.StringOutput)
+}
+
+// Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket.
+func (o LifecycleRuleArgsOutput) Prefix() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v LifecycleRuleArgs) *string { return v.Prefix }).(pulumi.StringPtrOutput)
+}
+
+type LifecycleRuleArgsArrayOutput struct{ *pulumi.OutputState }
+
+func (LifecycleRuleArgsArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]LifecycleRuleArgs)(nil)).Elem()
+}
+
+func (o LifecycleRuleArgsArrayOutput) ToLifecycleRuleArgsArrayOutput() LifecycleRuleArgsArrayOutput {
+	return o
+}
+
+func (o LifecycleRuleArgsArrayOutput) ToLifecycleRuleArgsArrayOutputWithContext(ctx context.Context) LifecycleRuleArgsArrayOutput {
+	return o
+}
+
+func (o LifecycleRuleArgsArrayOutput) Index(i pulumi.IntInput) LifecycleRuleArgsOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) LifecycleRuleArgs {
+		return vs[0].([]LifecycleRuleArgs)[vs[1].(int)]
+	}).(LifecycleRuleArgsOutput)
+}
+
 type PermissionsArgs struct {
 	// Whether the key has owner rights on the bucket (manage bucket-level settings such as its website configuration or quotas via the S3 API).
 	Owner *bool `pulumi:"owner"`
@@ -396,11 +529,15 @@ func (o WebsiteArgsPtrOutput) IndexDocument() pulumi.StringPtrOutput {
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*LifecycleRuleArgsInput)(nil)).Elem(), LifecycleRuleArgsArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*LifecycleRuleArgsArrayInput)(nil)).Elem(), LifecycleRuleArgsArray{})
 	pulumi.RegisterInputType(reflect.TypeOf((*PermissionsArgsInput)(nil)).Elem(), PermissionsArgsArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*QuotasArgsInput)(nil)).Elem(), QuotasArgsArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*QuotasArgsPtrInput)(nil)).Elem(), QuotasArgsArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*WebsiteArgsInput)(nil)).Elem(), WebsiteArgsArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*WebsiteArgsPtrInput)(nil)).Elem(), WebsiteArgsArgs{})
+	pulumi.RegisterOutputType(LifecycleRuleArgsOutput{})
+	pulumi.RegisterOutputType(LifecycleRuleArgsArrayOutput{})
 	pulumi.RegisterOutputType(PermissionsArgsOutput{})
 	pulumi.RegisterOutputType(QuotasArgsOutput{})
 	pulumi.RegisterOutputType(QuotasArgsPtrOutput{})

@@ -32,6 +32,12 @@ namespace Axnic.Pulumi.Garage
         public Output<string?> GlobalAlias { get; private set; } = null!;
 
         /// <summary>
+        /// S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+        /// </summary>
+        [Output("lifecycleRules")]
+        public Output<ImmutableArray<Outputs.LifecycleRuleArgs>> LifecycleRules { get; private set; } = null!;
+
+        /// <summary>
         /// The number of objects currently stored in the bucket.
         /// </summary>
         [Output("objects")]
@@ -100,6 +106,18 @@ namespace Axnic.Pulumi.Garage
         /// </summary>
         [Input("globalAlias")]
         public Input<string>? GlobalAlias { get; set; }
+
+        [Input("lifecycleRules")]
+        private InputList<Inputs.LifecycleRuleArgsArgs>? _lifecycleRules;
+
+        /// <summary>
+        /// S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+        /// </summary>
+        public InputList<Inputs.LifecycleRuleArgsArgs> LifecycleRules
+        {
+            get => _lifecycleRules ?? (_lifecycleRules = new InputList<Inputs.LifecycleRuleArgsArgs>());
+            set => _lifecycleRules = value;
+        }
 
         /// <summary>
         /// Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.

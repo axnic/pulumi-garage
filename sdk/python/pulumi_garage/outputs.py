@@ -15,10 +15,95 @@ else:
 from . import _utilities
 
 __all__ = [
+    'LifecycleRuleArgs',
     'PermissionsArgs',
     'QuotasArgs',
     'WebsiteArgs',
 ]
+
+@pulumi.output_type
+class LifecycleRuleArgs(dict):
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "abortIncompleteMultipartUploadDays":
+            suggest = "abort_incomplete_multipart_upload_days"
+        elif key == "expirationDays":
+            suggest = "expiration_days"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in LifecycleRuleArgs. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        LifecycleRuleArgs.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        LifecycleRuleArgs.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 enabled: _builtins.bool,
+                 id: _builtins.str,
+                 abort_incomplete_multipart_upload_days: Optional[_builtins.int] = None,
+                 expiration_days: Optional[_builtins.int] = None,
+                 prefix: Optional[_builtins.str] = None):
+        """
+        :param _builtins.bool enabled: Whether this rule is active.
+        :param _builtins.str id: A unique identifier for this rule within the bucket.
+        :param _builtins.int abort_incomplete_multipart_upload_days: Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically.
+        :param _builtins.int expiration_days: Delete objects this many days after creation. Omit to not expire objects by age.
+        :param _builtins.str prefix: Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket.
+        """
+        pulumi.set(__self__, "enabled", enabled)
+        pulumi.set(__self__, "id", id)
+        if abort_incomplete_multipart_upload_days is not None:
+            pulumi.set(__self__, "abort_incomplete_multipart_upload_days", abort_incomplete_multipart_upload_days)
+        if expiration_days is not None:
+            pulumi.set(__self__, "expiration_days", expiration_days)
+        if prefix is not None:
+            pulumi.set(__self__, "prefix", prefix)
+
+    @_builtins.property
+    @pulumi.getter
+    def enabled(self) -> _builtins.bool:
+        """
+        Whether this rule is active.
+        """
+        return pulumi.get(self, "enabled")
+
+    @_builtins.property
+    @pulumi.getter
+    def id(self) -> _builtins.str:
+        """
+        A unique identifier for this rule within the bucket.
+        """
+        return pulumi.get(self, "id")
+
+    @_builtins.property
+    @pulumi.getter(name="abortIncompleteMultipartUploadDays")
+    def abort_incomplete_multipart_upload_days(self) -> Optional[_builtins.int]:
+        """
+        Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically.
+        """
+        return pulumi.get(self, "abort_incomplete_multipart_upload_days")
+
+    @_builtins.property
+    @pulumi.getter(name="expirationDays")
+    def expiration_days(self) -> Optional[_builtins.int]:
+        """
+        Delete objects this many days after creation. Omit to not expire objects by age.
+        """
+        return pulumi.get(self, "expiration_days")
+
+    @_builtins.property
+    @pulumi.getter
+    def prefix(self) -> Optional[_builtins.str]:
+        """
+        Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket.
+        """
+        return pulumi.get(self, "prefix")
+
 
 @pulumi.output_type
 class PermissionsArgs(dict):

@@ -19,17 +19,45 @@ __all__ = ['ProviderArgs', 'Provider']
 @pulumi.input_type
 class ProviderArgs:
     def __init__(__self__, *,
+                 access_key_id: Optional[pulumi.Input[_builtins.str]] = None,
                  admin_token: Optional[pulumi.Input[_builtins.str]] = None,
-                 endpoint: Optional[pulumi.Input[_builtins.str]] = None):
+                 endpoint: Optional[pulumi.Input[_builtins.str]] = None,
+                 s3_endpoint: Optional[pulumi.Input[_builtins.str]] = None,
+                 s3_region: Optional[pulumi.Input[_builtins.str]] = None,
+                 secret_access_key: Optional[pulumi.Input[_builtins.str]] = None):
         """
         The set of arguments for constructing a Provider resource.
+        :param pulumi.Input[_builtins.str] access_key_id: An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
         :param pulumi.Input[_builtins.str] admin_token: A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
         :param pulumi.Input[_builtins.str] endpoint: The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
+        :param pulumi.Input[_builtins.str] s3_endpoint: The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        :param pulumi.Input[_builtins.str] s3_region: The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        :param pulumi.Input[_builtins.str] secret_access_key: The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
         """
+        if access_key_id is not None:
+            pulumi.set(__self__, "access_key_id", access_key_id)
         if admin_token is not None:
             pulumi.set(__self__, "admin_token", admin_token)
         if endpoint is not None:
             pulumi.set(__self__, "endpoint", endpoint)
+        if s3_endpoint is not None:
+            pulumi.set(__self__, "s3_endpoint", s3_endpoint)
+        if s3_region is not None:
+            pulumi.set(__self__, "s3_region", s3_region)
+        if secret_access_key is not None:
+            pulumi.set(__self__, "secret_access_key", secret_access_key)
+
+    @_builtins.property
+    @pulumi.getter(name="accessKeyId")
+    def access_key_id(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+        """
+        return pulumi.get(self, "access_key_id")
+
+    @access_key_id.setter
+    def access_key_id(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "access_key_id", value)
 
     @_builtins.property
     @pulumi.getter(name="adminToken")
@@ -55,6 +83,42 @@ class ProviderArgs:
     def endpoint(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "endpoint", value)
 
+    @_builtins.property
+    @pulumi.getter(name="s3Endpoint")
+    def s3_endpoint(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        """
+        return pulumi.get(self, "s3_endpoint")
+
+    @s3_endpoint.setter
+    def s3_endpoint(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "s3_endpoint", value)
+
+    @_builtins.property
+    @pulumi.getter(name="s3Region")
+    def s3_region(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        """
+        return pulumi.get(self, "s3_region")
+
+    @s3_region.setter
+    def s3_region(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "s3_region", value)
+
+    @_builtins.property
+    @pulumi.getter(name="secretAccessKey")
+    def secret_access_key(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+        """
+        return pulumi.get(self, "secret_access_key")
+
+    @secret_access_key.setter
+    def secret_access_key(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "secret_access_key", value)
+
 
 @pulumi.type_token("pulumi:providers:garage")
 class Provider(pulumi.ProviderResource):
@@ -62,15 +126,23 @@ class Provider(pulumi.ProviderResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
+                 access_key_id: Optional[pulumi.Input[_builtins.str]] = None,
                  admin_token: Optional[pulumi.Input[_builtins.str]] = None,
                  endpoint: Optional[pulumi.Input[_builtins.str]] = None,
+                 s3_endpoint: Optional[pulumi.Input[_builtins.str]] = None,
+                 s3_region: Optional[pulumi.Input[_builtins.str]] = None,
+                 secret_access_key: Optional[pulumi.Input[_builtins.str]] = None,
                  __props__=None):
         """
         Create a Garage resource with the given unique name, props, and options.
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
+        :param pulumi.Input[_builtins.str] access_key_id: An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
         :param pulumi.Input[_builtins.str] admin_token: A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
         :param pulumi.Input[_builtins.str] endpoint: The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
+        :param pulumi.Input[_builtins.str] s3_endpoint: The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        :param pulumi.Input[_builtins.str] s3_region: The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        :param pulumi.Input[_builtins.str] secret_access_key: The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
         """
         ...
     @overload
@@ -95,8 +167,12 @@ class Provider(pulumi.ProviderResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
+                 access_key_id: Optional[pulumi.Input[_builtins.str]] = None,
                  admin_token: Optional[pulumi.Input[_builtins.str]] = None,
                  endpoint: Optional[pulumi.Input[_builtins.str]] = None,
+                 s3_endpoint: Optional[pulumi.Input[_builtins.str]] = None,
+                 s3_region: Optional[pulumi.Input[_builtins.str]] = None,
+                 secret_access_key: Optional[pulumi.Input[_builtins.str]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
         if not isinstance(opts, pulumi.ResourceOptions):
@@ -106,15 +182,27 @@ class Provider(pulumi.ProviderResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = ProviderArgs.__new__(ProviderArgs)
 
+            __props__.__dict__["access_key_id"] = access_key_id
             __props__.__dict__["admin_token"] = None if admin_token is None else pulumi.Output.secret(admin_token)
             __props__.__dict__["endpoint"] = endpoint
-        secret_opts = pulumi.ResourceOptions(additional_secret_outputs=["adminToken"])
+            __props__.__dict__["s3_endpoint"] = s3_endpoint
+            __props__.__dict__["s3_region"] = s3_region
+            __props__.__dict__["secret_access_key"] = None if secret_access_key is None else pulumi.Output.secret(secret_access_key)
+        secret_opts = pulumi.ResourceOptions(additional_secret_outputs=["adminToken", "secretAccessKey"])
         opts = pulumi.ResourceOptions.merge(opts, secret_opts)
         super(Provider, __self__).__init__(
             'garage',
             resource_name,
             __props__,
             opts)
+
+    @_builtins.property
+    @pulumi.getter(name="accessKeyId")
+    def access_key_id(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+        """
+        return pulumi.get(self, "access_key_id")
 
     @_builtins.property
     @pulumi.getter(name="adminToken")
@@ -131,4 +219,28 @@ class Provider(pulumi.ProviderResource):
         The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
         """
         return pulumi.get(self, "endpoint")
+
+    @_builtins.property
+    @pulumi.getter(name="s3Endpoint")
+    def s3_endpoint(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        """
+        return pulumi.get(self, "s3_endpoint")
+
+    @_builtins.property
+    @pulumi.getter(name="s3Region")
+    def s3_region(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        """
+        return pulumi.get(self, "s3_region")
+
+    @_builtins.property
+    @pulumi.getter(name="secretAccessKey")
+    def secret_access_key(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+        """
+        return pulumi.get(self, "secret_access_key")
 

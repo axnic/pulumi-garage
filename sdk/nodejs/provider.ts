@@ -20,6 +20,10 @@ export class Provider extends pulumi.ProviderResource {
     }
 
     /**
+     * An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+     */
+    declare public readonly accessKeyId: pulumi.Output<string | undefined>;
+    /**
      * A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
      */
     declare public readonly adminToken: pulumi.Output<string | undefined>;
@@ -27,6 +31,18 @@ export class Provider extends pulumi.ProviderResource {
      * The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
      */
     declare public readonly endpoint: pulumi.Output<string | undefined>;
+    /**
+     * The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+     */
+    declare public readonly s3Endpoint: pulumi.Output<string | undefined>;
+    /**
+     * The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+     */
+    declare public readonly s3Region: pulumi.Output<string | undefined>;
+    /**
+     * The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+     */
+    declare public readonly secretAccessKey: pulumi.Output<string | undefined>;
 
     /**
      * Create a Provider resource with the given unique name, arguments, and options.
@@ -39,11 +55,15 @@ export class Provider extends pulumi.ProviderResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         {
+            resourceInputs["accessKeyId"] = args?.accessKeyId;
             resourceInputs["adminToken"] = args?.adminToken ? pulumi.secret(args.adminToken) : undefined;
             resourceInputs["endpoint"] = args?.endpoint;
+            resourceInputs["s3Endpoint"] = args?.s3Endpoint;
+            resourceInputs["s3Region"] = args?.s3Region;
+            resourceInputs["secretAccessKey"] = args?.secretAccessKey ? pulumi.secret(args.secretAccessKey) : undefined;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        const secretOpts = { additionalSecretOutputs: ["adminToken"] };
+        const secretOpts = { additionalSecretOutputs: ["adminToken", "secretAccessKey"] };
         opts = pulumi.mergeOptions(opts, secretOpts);
         super(Provider.__pulumiType, name, resourceInputs, opts);
     }
@@ -54,6 +74,10 @@ export class Provider extends pulumi.ProviderResource {
  */
 export interface ProviderArgs {
     /**
+     * An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+     */
+    accessKeyId?: pulumi.Input<string>;
+    /**
      * A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
      */
     adminToken?: pulumi.Input<string>;
@@ -61,4 +85,16 @@ export interface ProviderArgs {
      * The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
      */
     endpoint?: pulumi.Input<string>;
+    /**
+     * The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+     */
+    s3Endpoint?: pulumi.Input<string>;
+    /**
+     * The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+     */
+    s3Region?: pulumi.Input<string>;
+    /**
+     * The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+     */
+    secretAccessKey?: pulumi.Input<string>;
 }
