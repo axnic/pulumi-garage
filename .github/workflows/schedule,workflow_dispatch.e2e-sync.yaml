@@ -11,7 +11,7 @@
 # Jobs:
 #   sync — add/remove the per-version E2E callers in a pull request, from e2e.sync
 #
-# MANAGED BY TERRAFORM (axnic/.github-private, modules/workflows) — do not edit by hand.
+# MANAGED BY TERRAFORM (axnic/.github, terraform/modules/workflows) — do not edit by hand.
 # Reusable workflow: https://github.com/axnic/.github/blob/main/.github/workflows/e2e.sync.yaml
 # =============================================================================
 
