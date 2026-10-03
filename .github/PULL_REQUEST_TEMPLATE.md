@@ -25,7 +25,7 @@ Closes #<!-- issue number, or "N/A" -->
 ```sh
 make provider
 make test
-make lint
+mise run lint
 ```
 
 <!-- Add any additional manual steps here. -->
@@ -42,7 +42,7 @@ make lint
 ### Code quality
 
 - [ ] `make test` passes locally
-- [ ] `make lint` passes locally
+- [ ] `mise run lint` passes locally
 - [ ] New behaviour is covered by tests
 
 ### Documentation

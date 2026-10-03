@@ -3,17 +3,16 @@ name: release
 description: >
   Cuts a versioned release of pulumi-garage (provider binary + SDKs). Use
   when asked to cut a release, tag a version, publish a new version, or
-  explains the release process. Triggers the tag-push release flow and
-  explains required registry secrets.
+  explains the release process. Triggers the dispatch-based release flow
+  and explains registry secrets.
 compatibility: Requires git and GitHub CLI (gh)
 allowed-tools: Bash(git:*) Bash(gh:*)
 ---
 
 # Release Skill
 
-Releases are triggered by pushing a semver tag - there is no
-`workflow_dispatch` release trigger in this repo. Never hand-build or
-hand-publish an SDK for a release; always go through the tag-push workflow.
+Releases are cut by dispatching the `Release` workflow - pushing a tag does
+not publish anything. Never hand-build or hand-publish an SDK for a release.
 See [RELEASING.md](../../../RELEASING.md) for the full picture (this skill
 is a condensed operational summary of it - if they ever disagree,
 RELEASING.md is the source of truth).
@@ -21,39 +20,40 @@ RELEASING.md is the source of truth).
 ## Pre-flight
 
 1. Confirm `main` is green: `gh run list --branch main --limit 1`.
-2. Confirm the secrets a release depends on are configured, or accept that
-   the unconfigured ones will be skipped rather than fail (see RELEASING.md's
-   Required secrets table: `PYPI_API_TOKEN` is the only stored secret; npm
-   and NuGet use OIDC trusted publishing).
+2. Confirm the registry secrets you need are configured (`NPM_TOKEN`,
+   `PYPI_API_TOKEN`, `NUGET_API_KEY`; each optional per registry - see
+   RELEASING.md). Setup details live in the `axnic/.github` wiki.
 
 ## Cutting a release
 
+Provide `bump` (`auto|patch|minor|major`) **or** `version`, never both:
+
 ```sh
-git tag v1.0.0          # or v1.0.0-alpha.1 for a prerelease
-git push origin v1.0.0
+gh workflow run workflow_dispatch.release.yaml -f bump=auto
+gh workflow run workflow_dispatch.release.yaml -f version=1.2.0
+gh workflow run workflow_dispatch.release.yaml -f version=1.2.0-rc.1   # release candidate
 ```
 
-Prerelease tags (any semver tag with a `-` suffix) are marked as a GitHub
-prerelease automatically (`release.prerelease: auto` in `.goreleaser.yml`)
-and published to npm under the `next` dist-tag instead of `latest`.
+Prerelease versions (any version with a `-` suffix) are marked as a GitHub
+prerelease automatically (`release.prerelease: auto` in `.goreleaser.yml`).
 
-## What the tag push triggers
+## What the dispatch triggers
 
-`.github/workflows/push.release.yaml`:
+The central Release workflow (`axnic/.github`), called from
+`.github/workflows/workflow_dispatch.release.yaml`:
 
 1. Builds the provider binary for darwin/linux/windows (amd64+arm64) via
    GoReleaser and publishes a GitHub Release with checksums - this alone
    is enough for `pulumi plugin install resource garage <version>` to work.
 2. Pushes a second tag, `sdk/go/pulumi-garage/vX.Y.Z`, so the Go SDK
    resolves cleanly via `go get` despite living in a repo subdirectory.
-3. Publishes the Node.js, Python, and .NET SDKs to their registries - each
-   independently gated on its own secret/trusted-publisher setup; an
-   unconfigured registry is skipped, not failed.
+3. Publishes the Node.js, Python, and .NET SDKs to their registries,
+   depending on which registry secrets are configured.
 
 ## Watching a release run
 
 ```sh
-gh run list --repo axnic/pulumi-garage --workflow=push.release.yaml --limit 5
+gh run list --repo axnic/pulumi-garage --workflow=workflow_dispatch.release.yaml --limit 5
 gh run view <run-id> --repo axnic/pulumi-garage
 ```
 

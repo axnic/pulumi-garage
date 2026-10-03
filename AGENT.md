@@ -35,54 +35,36 @@
   checking they've actually been regenerated. Java/Maven was regenerated once
   too, then dropped for good (low pulumi+java adoption vs. setup cost) - don't
   reintroduce it without an explicit ask.
-- CI job list (as of last check): lint, commitlint, build, test — defined in
-  .github/workflows/merge_group,pull_request,push.ci.yaml. Triggers on
-  merge_group, pull_request, AND push to main (commits land on main directly,
-  without a PR, so the push trigger is what actually validates them). E2E moved
-  out of this file into a per-Garage-version matrix — see next point.
-- Coverage gate (test job's last step, "Enforce minimum test coverage"):
-  reads `provider/coverage.txt` (`make test` always produced this file,
-  nothing consumed it before this step existed), runs `go tool cover -func`
-  for total statement coverage, and fails the job below 60%. This is a
-  floor/ratchet, not a target — raise it as coverage improves, never lower it
-  just to unblock a failing PR. Provider package coverage went 47.2% → 54.8%
-  to clear it (new tests for the previously-0%-covered DryRun branches of the
-  Bucket/Key/BucketKeyPermission Create/Update adapter methods, plus a
-  Provider() smoke test and an APIError.Error() test); blended
-  provider+garageclient total is ~63.5%.
+- CI is central: hand-written workflows were removed; the callers in
+  `.github/workflows/` (Terraform-generated, thin) call reusable workflows from
+  `axnic/.github`: `qa` (Quality Assurance: lint via `rtunk`, commit messages),
+  `test` (build, tests, coverage), `scan`, `deps`, `audit`, `codegen`, `release`,
+  `e2e-sync`. Triggers on merge_group, pull_request, AND push to main (commits land
+  on main directly, without a PR, so the push trigger is what actually validates
+  them). Don't re-add logic to this repo's workflows: CI calls `mise run <task>`
+  (`lint`, `ci:commitlint`, `ci:build`, `ci:test`, `ci:coverage`, `security:audit`,
+  `ci:e2e`, `ci:e2e:versions`; see `.config/mise.toml`), and `mise run ci` is the
+  local aggregate. `mise run lint` = `rtunk check .` (config: `.rtunk/rtunk.yaml`),
+  not `make lint`.
+- Coverage gate (`mise run ci:coverage`): reads `provider/coverage.txt` (written by
+  `make test`), runs `go tool cover -func` for total statement coverage, and fails
+  below 60%. This is a floor/ratchet, not a target - raise it as coverage improves,
+  never lower it just to unblock a failing PR.
 - Branch protection on `main` (a live GitHub repo setting, not a file in this
   repo) requires 4 status checks — Lint, Commit Messages, Build, Tests —
   before a PR/merge-queue merge. It does NOT gate direct `git push` to main
   (classic branch-protection required-status-checks only covers PR/merge-queue
   merges, not raw pushes), so the direct-push-to-main workflow described above
   is unaffected.
-- commitlint job's "Validate commit messages" step (non-push path) is now
-  skipped when `github.actor == 'dependabot[bot]'` — Dependabot's own raw
-  commit messages never carry a `type(scope):` prefix, so they'd always fail.
-  The push-to-main step (unchanged) still validates the final squashed commit
-  once it lands on main, so nothing non-compliant reaches main unvalidated.
-- Dependabot (`.github/dependabot.yml`): `open-pull-requests-limit` used to be
-  0 for all 3 ecosystems (github-actions, gomod, npm in /examples) — routine
-  version-update PRs were entirely disabled, only security-advisory PRs opened
-  automatically (Dependabot's separate security-update feature ignores the
-  limit). Raised to 10 so routine PRs open normally. New workflow
-  `.github/workflows/pull_request.dependabot-auto-merge.yaml` uses
-  `dependabot/fetch-metadata` to read each Dependabot PR's semver update-type
-  and GHSA id: patch updates, or any security update (GHSA id present) at any
-  semver level, get auto-approved and merged via `gh pr merge --auto
-  --squash`; minor/major non-security updates are left as open PRs for manual
-  review. The workflow builds its own commit subject
-  (`build(deps): Bump <names> from <old> to <new>`) instead of reusing
-  Dependabot's PR title, because that title is never sentence-case (starts
-  lowercase "bump") and for dev dependencies uses scope `deps-dev`, which
-  isn't in `.commitlintrc.js`'s scope-enum (only `deps` is allowed) — this is
-  why routine PRs were disabled in the first place, and why the workaround
-  constructs a compliant message rather than trusting Dependabot's own. Two
-  live GitHub repo settings were one-time prerequisites: "Allow auto-merge"
-  (was off, needed for `gh pr merge --auto`) and Discussions (was off —
-  enabled because `.github/ISSUE_TEMPLATE/config.yml` already links to
-  https://github.com/axnic/pulumi-garage/discussions, which was a dead link
-  before this).
+- Dependabot (`.github/dependabot.yml`): routine weekly version-update PRs for
+  github-actions, gomod and npm (/examples); what happens to them afterwards
+  (approval, auto-merge) is handled by the central Dependency Updates workflow in
+  `axnic/.github`, not by a file in this repo. Dependabot's own PR titles are never
+  sentence-case and use scope `deps-dev` for dev dependencies (not in
+  `.commitlintrc.js`'s scope-enum, only `deps` is allowed), so no `commit-message:`
+  config is set here and merge automation must build a compliant subject. "Allow
+  auto-merge" and Discussions are live repo settings (Discussions: linked from
+  `.github/ISSUE_TEMPLATE/config.yml`).
 - `make test_all` was removed from the Makefile — it referenced
   `provider/pkg` and `tests/sdk/{nodejs,python,dotnet,go}`, none of which
   exist in this repo (leftover from the `pulumi-resource-provider-boilerplate`
@@ -96,9 +78,8 @@
   scopes/check-commands/doc filenames/branch-naming table — now correct,
   defers to `commit/SKILL.md` for commit-message rules instead of duplicating
   them, and documents the 4 required branch-protection checks above);
-  `release/SKILL.md` (this repo's actual release trigger is `git tag vX.Y.Z
-  && git push origin vX.Y.Z` → `push.release.yaml`, not a `workflow_dispatch`
-  workflow — now points to RELEASING.md as the source of truth); and
+  `release/SKILL.md` (releases are a `workflow_dispatch` of the central Release workflow with
+  `bump` XOR `version`, not a tag push — points to RELEASING.md as the source of truth); and
   `create-issue/SKILL.md` + `references/templates.md` +
   `references/examples.md` (two hardcoded URLs pointed at
   `xunleii/pi-extension-settings`; bug-report required-fields table and
@@ -112,22 +93,18 @@
   fiction for this project. `commit/SKILL.md` and
   `pulumi-provider-review/SKILL.md` were checked and found already accurate
   — no changes made there.
-- Compatibility matrix (added for the version-matrix/devcontainer PR): four
-  thin workflow files, `.github/workflows/merge_group,pull_request,push.e2e-garage-2.{0,1,2,3}.yaml`,
-  each calling `.github/workflows/_reusable-e2e.yaml` (a `workflow_call`
-  workflow) with a pinned `garage-version`. One file per version rather than a
-  `strategy.matrix` job because GitHub Actions status badges are per-workflow-file,
-  not per-matrix-leg — the README's Compatibility table embeds each file's own
-  badge. If a version is added/removed, update: the matrix table in README.md,
-  the four (or N) thin workflow files, and confirm `docker-compose.yml` /
-  `scripts/bootstrap-garage.sh` still work against it (`GARAGE_VERSION=vX.Y.Z
-  make test_e2e`) — `--single-node` only exists from Garage v2.3.0 onward, so
-  the bootstrap script always does the manual layout bootstrap, which is what
-  actually makes this version-agnostic. Gotcha hit and fixed: a job whose only
-  content is `uses: ./.github/workflows/_reusable-e2e.yaml` needs its own
-  explicit `permissions:` block (even matching the top-level `permissions: {}`
-  in intent) - without one, all four workflows failed with `startup_failure`
-  and zero jobs created, no useful error message anywhere in the GitHub API.
+- Compatibility matrix: one thin caller per Garage version,
+  `.github/workflows/merge_group,pull_request,push.e2e-v2.{0,1,2,3}.0.yaml`, each
+  calling the central E2E workflow in `axnic/.github` with a pinned version. One file
+  per version rather than a `strategy.matrix` job because GitHub Actions status badges
+  are per-workflow-file, not per-matrix-leg - the README's Compatibility table embeds
+  each file's own badge. New versions are added by the E2E Sync workflow of
+  `axnic/.github`, which opens a PR with the new caller and the README badge row
+  (keep the row format `| vX.Y.0 | [![E2E (Garage vX.Y.0)](...)](...) |`). Confirm
+  `docker-compose.yml` / `scripts/bootstrap-garage.sh` still work against a new version
+  (`GARAGE_VERSION=vX.Y.Z make test_e2e`) - `--single-node` only exists from Garage
+  v2.3.0 onward, so the bootstrap script always does the manual layout bootstrap,
+  which is what makes this version-agnostic.
 - `scripts/bootstrap-garage.sh` bootstraps a single-node layout purely over
   the Admin API (`GetClusterStatus` → `UpdateClusterLayout` →
   `ApplyClusterLayout`, all HTTP, driven by `GARAGE_ADMIN_ENDPOINT`/

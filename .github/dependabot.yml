@@ -1,20 +1,14 @@
 # Dependabot — routine + security updates
 #
 # Every ecosystem below opens routine version-update PRs (weekly). What
-# happens to a PR after that is decided by
-# .github/workflows/pull_request.dependabot-auto-merge.yaml, not here:
-#   - Patch updates and any security update (any semver level) are
-#     auto-approved and auto-merged once CI is green.
-#   - Minor and major (non-security) updates are left open for manual
-#     review.
+# happens to a PR after that (approval, auto-merge) is decided by the
+# central Dependency Updates workflow (axnic/.github), not here.
 # No `commit-message:` prefix/scope config here on purpose - Dependabot's
 # own subject text is never sentence-case and its scope for dev deps is
-# "deps-dev" (not in .commitlintrc.js's scope-enum), so the auto-merge
-# workflow builds a compliant `build(deps): Bump ...` subject itself at
-# merge time instead of relying on Dependabot's title. Not grouping updates
-# either, so each PR carries exactly one dependency and one semver level -
-# grouping a patch with a minor in the same PR would force it into the
-# "manual review" bucket above.
+# "deps-dev" (not in .commitlintrc.js's scope-enum), so any merge
+# automation must build a compliant `build(deps): Bump ...` subject itself
+# instead of relying on Dependabot's title. Not grouping updates
+# either, so each PR carries exactly one dependency and one semver level.
 
 version: 2
 updates:

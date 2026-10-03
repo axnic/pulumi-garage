@@ -29,7 +29,7 @@ Run the same checks CI runs, and confirm they're green:
 ```sh
 make provider
 make test
-make lint
+mise run lint
 ```
 
 Never open a PR with a failing check suite. Fix the issue first.
@@ -93,7 +93,7 @@ understand it without reading every diff line.
 
 ### How to validate
 
-Already pre-filled with `make provider` / `make test` / `make lint`. Add any
+Already pre-filled with `make provider` / `make test` / `mise run lint`. Add any
 extra manual steps (e.g. `make test_e2e` for a change touching resource
 lifecycle behavior) below it.
 
@@ -131,8 +131,5 @@ git commit -s -m "fix(provider): Address review: validate bucket ID before creat
 
 ## CI
 
-`.github/workflows/merge_group,pull_request,push.ci.yaml` runs four required
-checks on every PR: Lint, Commit Messages, Build, Tests (the last now
-includes a minimum test-coverage gate). Branch protection on `main` requires
-all four before merge. If any check is red, fix it in a new commit - do not
+The central Quality Assurance workflows (callers in `.github/workflows/`, `merge_group,pull_request,push.qa.yaml`) run lint (rtunk), commit-message, build and test checks (the last includes a minimum test-coverage gate) on every PR. Branch protection on `main` requires them before merge. If any check is red, fix it in a new commit - do not
 skip hooks or force-merge.

@@ -14,7 +14,7 @@ PULUMI_HOME = "{{config_root}}/.pulumi"
 # Only yaml/go example programs are exercised in CI (see README's "Known
 # limitations"), but all 4 SDKs (nodejs, python, dotnet, go) are generated
 # and published on release, so their toolchains are all needed here too -
-# see .github/workflows/push.release.yaml. Java/Maven Central were dropped
+# see the central Release workflow (axnic/.github). Java/Maven Central were dropped
 # (see git history) - too little pulumi+java adoption to justify the setup
 # cost (Sonatype namespace verification, GPG signing, etc).
 go = "{{ env.GO_VERSION_MISE }}"

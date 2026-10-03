@@ -4,14 +4,22 @@ This document is for maintainers cutting a release of the provider and its SDKs.
 
 ## How a release works
 
-Pushing a tag matching `v*` (e.g. `v1.0.0`, or `v1.0.0-alpha.1` for a prerelease)
-triggers [`.github/workflows/push.release.yaml`](.github/workflows/push.release.yaml),
-which:
+A release is a manual dispatch of the `Release` workflow (caller
+`.github/workflows/workflow_dispatch.release.yaml`, a thin caller of the central
+Release workflow in `axnic/.github`). **Pushing a tag no longer publishes
+anything.** The dispatch takes one of two inputs, mutually exclusive:
+
+- `bump`: `auto` | `patch` | `minor` | `major` - the next version is computed
+  from the latest release.
+- `version`: an explicit version such as `1.2.0`, or a release candidate such
+  as `1.2.0-rc.1`.
+
+Setting both, or neither, is an error. The release:
 
 1. Builds the provider binary for darwin/linux/windows (amd64+arm64) with
    [GoReleaser](.goreleaser.yml) and publishes them as a GitHub Release with
    checksums. **This step alone is enough** for
-   `pulumi plugin install resource garage <version>` to work — the provider
+   `pulumi plugin install resource garage <version>` to work - the provider
    resolves straight from this repo's GitHub Releases
    (`WithPluginDownloadURL` in `provider/provider.go`), no Pulumi Registry
    listing required.
@@ -19,103 +27,63 @@ which:
    (`sdk/go/pulumi-garage/vX.Y.Z`) so
    `go get github.com/axnic/pulumi-garage/sdk/go/pulumi-garage@vX.Y.Z`
    resolves to a clean version instead of a pseudo-version (Go's module
-   versioning rule for modules living in a subdirectory of a repo — see
+   versioning rule for modules living in a subdirectory of a repo - see
    [go.dev/ref/mod#vcs-version](https://go.dev/ref/mod#vcs-version)).
 3. Publishes the other 3 SDKs (nodejs, python, dotnet) to their respective
-   registries. **PyPI is gated on its secret being configured** — skipped,
-   not failed, if you haven't onboarded it yet, so you can cut binary-only
-   releases before every registry is wired up. npm and NuGet use trusted
-   publishing instead of a stored secret, so those two steps always run
-   rather than being skippable this way - see
-   [Required secrets](#required-secrets) below. In practice, onboard npm and
-   NuGet's registry-side trusted-publisher policies *before* the first tag
-   that's meant to reach them, otherwise that step fails loudly instead of
-   quietly skipping.
+   registries. Each registry's credential is optional (see
+   [Registry secrets](#registry-secrets)).
+
+The mechanics of the central workflow (authentication, trusted publishing,
+dist-tags, what it gates on) live in the
+[`axnic/.github` wiki](https://github.com/axnic/.github/wiki), not here.
 
 There's no Java/Maven SDK - dropped as not worth the setup cost (Sonatype
 namespace verification, GPG-signed releases) given how little of the
 Pulumi ecosystem uses Java.
 
-A tag with a prerelease segment (`-alpha.1`, `-beta.2`, ...) is automatically
+A version with a prerelease segment (`1.2.0-rc.1`, ...) is automatically
 marked as a prerelease on GitHub (`release.prerelease: auto` in
-`.goreleaser.yml`) and published to npm under the `next` dist-tag instead of
-`latest` (npm refuses to publish a prerelease version to `latest`).
+`.goreleaser.yml`).
 
-## Required secrets
+## Registry secrets
 
 Configure these as [repository secrets](https://github.com/axnic/pulumi-garage/settings/secrets/actions).
-None are required to release the provider binary itself — only to publish
-the corresponding language SDK. npm and NuGet no longer need a stored
-long-lived token at all — they publish via each registry's OIDC-based
-*trusted publishing*, which exchanges this workflow's own identity for a
-short-lived credential at publish time. That needs `permissions: id-token:
-write` on the `publish-sdks` job (already set in
-[`push.release.yaml`](.github/workflows/push.release.yaml)) plus a one-time
-registry-side setup described below - no GitHub secret to rotate or leak.
+None are required to release the provider binary itself - only to publish
+the corresponding language SDK. Each is optional per registry.
 
 | Secret | Registry | Used by |
 | --- | --- | --- |
-| — (trusted publishing) | [npmjs.com](https://www.npmjs.com) | Node.js SDK (`@axnic/pulumi-garage`) |
+| `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) | Node.js SDK (`@axnic/pulumi-garage`) |
 | `PYPI_API_TOKEN` | [PyPI](https://pypi.org) | Python SDK (`pulumi_garage`) |
-| `NUGET_USER` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Axnic.Pulumi.Garage`) — trusted publishing, `NUGET_USER` is just the NuGet.org username, not a credential |
+| `NUGET_API_KEY` | [NuGet.org](https://www.nuget.org) | .NET SDK (`Axnic.Pulumi.Garage`) |
 
-### Obtaining each secret
+Any registry-side setup (trusted publishers, token scopes) and the exact
+behaviour when a secret is missing are documented in the
+[`axnic/.github` wiki](https://github.com/axnic/.github/wiki).
 
-- **npm (no secret — trusted publishing)** — on the `@axnic/pulumi-garage`
-  package's [npmjs.com](https://www.npmjs.com) settings page, under
-  *Trusted Publisher*, add a GitHub Actions publisher pointing at
-  `axnic/pulumi-garage`, workflow file `push.release.yaml`. Requires npm CLI
-  ≥ 11.5.1 (the mise-pinned Node.js version already ships a newer one - see
-  `.config/mise.toml`) and the workflow's `id-token: write` permission,
-  which is what lets `npm publish --provenance` mint the OIDC-backed
-  credential instead of reading `NODE_AUTH_TOKEN`.
-- **`PYPI_API_TOKEN`** — create a [PyPI API
-  token](https://pypi.org/help/#apitoken) scoped to the `pulumi_garage`
-  project (or your account, before the project exists yet). PyPI trusted
-  publishing exists too but isn't set up here yet; this token is the only
-  registry still using a stored secret.
-- **`NUGET_USER`** (trusted publishing) — on
-  [NuGet.org](https://www.nuget.org), configure a Trusted Publishing policy
-  for the `Axnic.Pulumi.Garage` package pointing at `axnic/pulumi-garage`'s
-  `push.release.yaml` workflow, then set `NUGET_USER` to your NuGet.org
-  username (not a secret in the sensitive sense - it's just what the
-  [`NuGet/login`](https://github.com/NuGet/login) action uses to look up
-  the right trusted-publishing policy before exchanging this workflow's
-  OIDC token for a short-lived API key at publish time).
-
-  The package was originally named `Pulumi.Garage`, matching the npm/PyPI
-  convention. That name never actually published: `dotnet nuget push`
-  reported "already exists" (a fast ~350ms 409, too quick to be real
-  content dedup) despite the package never appearing anywhere on NuGet
-  and nothing showing up in the account's own package list either. Best
-  read of the evidence: NuGet Trusted Publishing likely can't originate a
-  package ID that's never existed before - the short-lived OIDC-derived
-  key's scope may only cover pushing new *versions* of a package the
-  policy already recognizes. Renamed to `Axnic.Pulumi.Garage` to sidestep
-  the question entirely (and any possible collision with the `Pulumi.*`
-  prefix used by Pulumi's own official/partner providers). **Before the
-  first real release under this name**, either confirm NuGet Trusted
-  Publishing does support first-time package creation, or do a one-time
-  manual seed push with a regular NuGet API key to create the package,
-  after which trusted publishing should work normally for every
-  version after.
+NuGet package naming: the package was originally named `Pulumi.Garage`,
+matching the npm/PyPI convention, but that name never actually published
+(`dotnet nuget push` reported "already exists" despite the package never
+appearing on NuGet). It was renamed to `Axnic.Pulumi.Garage` to sidestep the
+question (and any collision with the `Pulumi.*` prefix used by Pulumi's own
+official/partner providers).
 
 ## Cutting a release
 
 1. Make sure `main` is green (CI passing) and has everything you want to
    release.
-2. Tag and push:
+2. Dispatch the release, from the Actions tab ("Release" workflow, "Run
+   workflow") or the CLI. Provide `bump` **or** `version`, never both:
    ```sh
-   git tag v1.0.0
-   git push origin v1.0.0
+   gh workflow run workflow_dispatch.release.yaml -f bump=auto
+   gh workflow run workflow_dispatch.release.yaml -f version=1.2.0
+   # release candidate
+   gh workflow run workflow_dispatch.release.yaml -f version=1.2.0-rc.1
    ```
-   For a prerelease: `git tag v1.0.0-alpha.1`.
 3. Watch the [`Release` workflow
-   run](https://github.com/axnic/pulumi-garage/actions/workflows/push.release.yaml).
-   The GitHub Release itself (provider binaries) always runs. npm and NuGet
-   always attempt to publish (trusted publishing, no secret gate); PyPI only
-   runs once its secret is configured - see
-   [Required secrets](#required-secrets).
+   run](https://github.com/axnic/pulumi-garage/actions/workflows/workflow_dispatch.release.yaml).
+   The GitHub Release itself (provider binaries) always runs; SDK publishing
+   depends on the registry secrets above.
 4. Verify: `pulumi plugin install resource garage <version>` (or let `pulumi
    up` resolve it automatically from the provider's `pluginDownloadURL`),
    and check the registries you published to for the new package version.
