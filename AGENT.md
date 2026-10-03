@@ -46,13 +46,16 @@
   `ci:e2e`, `ci:e2e:versions`; see `.config/mise.toml`), and `mise run ci` is the
   local aggregate. `mise run lint` = `rtunk check .` (config: `.rtunk/rtunk.yaml`),
   not `make lint`.
-- Coverage gate (`mise run ci:coverage`): reads `provider/coverage.txt` (written by
-  `make test`), runs `go tool cover -func` for total statement coverage, and fails
-  below 60%. This is a floor/ratchet, not a target - raise it as coverage improves,
+- Coverage gate: the `ci:coverage` mise task (called by the Go Quality Assurance
+  workflow) reads `provider/coverage.txt` (written by `make test`), runs `go tool
+  cover -func` for total statement coverage, and fails below `COVERAGE_FLOOR` (60,
+  set in `.config/mise.toml`). This is a floor/ratchet, not a target - raise it as coverage improves,
   never lower it just to unblock a failing PR.
-- Branch protection on `main` (a live GitHub repo setting, not a file in this
-  repo) requires 4 status checks — Lint, Commit Messages, Build, Tests —
-  before a PR/merge-queue merge. It does NOT gate direct `git push` to main
+- Branch protection on `main` (managed in Terraform, `axnic/.github-private`, not a
+  file in this repo) requires the Quality Assurance workflow (Lint, rtunk, Commit
+  Messages) and the Go Quality Assurance workflow (Build, Test, Coverage) before a
+  PR/merge-queue merge. Exact status-check names may be shown as
+  `<workflow job> / <job>` and are defined in Terraform. It does NOT gate direct `git push` to main
   (classic branch-protection required-status-checks only covers PR/merge-queue
   merges, not raw pushes), so the direct-push-to-main workflow described above
   is unaffected.

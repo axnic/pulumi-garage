@@ -131,5 +131,5 @@ git commit -s -m "fix(provider): Address review: validate bucket ID before creat
 
 ## CI
 
-The central Quality Assurance workflows (callers in `.github/workflows/`, `merge_group,pull_request,push.qa.yaml`) run lint (rtunk), commit-message, build and test checks (the last includes a minimum test-coverage gate) on every PR. Branch protection on `main` requires them before merge. If any check is red, fix it in a new commit - do not
+The central Quality Assurance workflows (callers in `.github/workflows/`, `merge_group,pull_request,push.qa.yaml`) run Lint, rtunk and Commit Messages checks; the Go Quality Assurance workflow runs Build, Test and Coverage (minimum-coverage gate). Branch protection on `main` requires these before merge; exact status-check names are managed in Terraform (`axnic/.github-private`) and may appear as `<workflow job> / <job>`. If any check is red, fix it in a new commit - do not
 skip hooks or force-merge.

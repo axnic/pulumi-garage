@@ -93,14 +93,16 @@ Commands:
 CI is made of central reusable workflows from `axnic/.github`, called by thin workflow
 files in `.github/workflows/` (generated, not hand-written). The quality workflow (`merge_group,pull_request,push.qa.yaml`) runs on pull requests,
 merge-queue entries, and pushes to `main` (this repo takes commits directly on `main`
-without a PR for most changes, so the push trigger is what actually validates them): lint (`rtunk`), commit-message checks, build, and unit tests. The tests job also
-enforces a minimum total statement coverage of 60% (`mise run ci:coverage`, computed
-from `provider/coverage.txt` via `go tool cover -func`) - a floor that only ever goes up
+without a PR for most changes, so the push trigger is what actually validates them): lint (`rtunk`), commit-message checks, build, and unit tests. A minimum total statement
+coverage of 60% is enforced by the `ci:coverage` mise task (called by the Go Quality
+Assurance workflow; `COVERAGE_FLOOR` in `.config/mise.toml`), computed from `provider/coverage.txt` via `go tool cover -func`) - a floor that only ever goes up
 as coverage improves, not a target to hit exactly. The E2E suite runs separately, once per supported Garage version - see the
 [Compatibility matrix](README.md#compatibility).
 
-Branch protection on `main` requires the Lint, Commit Messages, Build, and Tests
-checks to pass before a pull request or merge-queue entry can merge. It doesn't gate
+Branch protection on `main` requires the Quality Assurance workflow (Lint, rtunk,
+Commit Messages) and the Go Quality Assurance workflow (Build, Test, Coverage) to pass before a pull request or merge-queue entry can merge. The exact status-check names
+are managed in Terraform (`axnic/.github-private`) and may appear as
+`<workflow job> / <job>`. It doesn't gate
 direct pushes to `main` - the push trigger above still validates those after the
 fact.
 
