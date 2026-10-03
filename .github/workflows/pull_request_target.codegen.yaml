@@ -9,7 +9,7 @@
 # Jobs:
 #   codegen — warn about hand edits of the generated sdk/, from pulumi.codegen
 #
-# MANAGED BY TERRAFORM (axnic/.github-private, modules/workflows) — do not edit by hand.
+# MANAGED BY TERRAFORM (axnic/.github, terraform/modules/workflows) — do not edit by hand.
 # Reusable workflow: https://github.com/axnic/.github/blob/main/.github/workflows/pulumi.codegen.yaml
 # =============================================================================
 
