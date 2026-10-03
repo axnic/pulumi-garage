@@ -1,8 +1,9 @@
 package main
 
 import (
-	garage "github.com/axnic/pulumi-garage/sdk/go/pulumi-garage"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	garage "github.com/axnic/pulumi-garage/sdk/go/pulumi-garage"
 )
 
 func main() {

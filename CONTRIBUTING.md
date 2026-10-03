@@ -31,7 +31,7 @@ finishes building, no manual setup step:
   bucket permissions yet; wire it into a `BucketKeyPermission` as part of whatever
   you're testing.
 
-`make lint` and `make test` work immediately - and because `GARAGE_ADMIN_ENDPOINT` is
+`mise run lint` and `make test` work immediately - and because `GARAGE_ADMIN_ENDPOINT` is
 already set, `make test` runs the example lifecycle tests too (normally skipped
 without a live cluster), so it's a fuller check inside the devcontainer than outside
 it. `make dev-up` / `make test_e2e` also work, via a *separate*, disposable Garage
@@ -87,19 +87,22 @@ Commands:
   down. Requires Docker. Defaults to `dxflrs/garage:v2.3.0`; pin another version with
   `GARAGE_VERSION`, e.g. `GARAGE_VERSION=v2.0.0 make test_e2e` - see the
   [Compatibility matrix](README.md#compatibility) for which versions CI verifies.
-- `make lint` - runs `golangci-lint`.
+- `mise run lint` - runs `rtunk check .` (golangci-lint and the other linters configured in `.rtunk/rtunk.yaml`); `mise run lint:fix` applies autofixes.
+- `mise run ci` - local aggregate of what CI checks: lint, build, tests and the coverage floor (commit messages, E2E and `security:audit` are excluded).
 
-CI (`.github/workflows/merge_group,pull_request,push.ci.yaml`) runs lint, commitlint,
-build, and unit tests on every pull request, merge-queue entry, and push to `main` -
-this repo takes commits directly on `main` without a PR for most changes, so the push
-trigger is what actually validates them. The test job also enforces a minimum total
-statement coverage of 60% (computed from `provider/coverage.txt` via `go tool cover
--func`) - a floor that only ever goes up as coverage improves, not a target to hit
-exactly. The E2E suite runs separately, once per supported Garage version - see the
+CI is made of central reusable workflows from `axnic/.github`, called by thin workflow
+files in `.github/workflows/` (generated, not hand-written). The quality workflow (`merge_group,pull_request,push.qa.yaml`) runs on pull requests,
+merge-queue entries, and pushes to `main` (this repo takes commits directly on `main`
+without a PR for most changes, so the push trigger is what actually validates them): lint (`rtunk`), commit-message checks, build, and unit tests. A minimum total statement
+coverage of 60% is enforced by the `ci:coverage` mise task (called by the Go Quality
+Assurance workflow; `COVERAGE_FLOOR` in `.config/mise.toml`), computed from `provider/coverage.txt` via `go tool cover -func`) - a floor that only ever goes up
+as coverage improves, not a target to hit exactly. The E2E suite runs separately, once per supported Garage version - see the
 [Compatibility matrix](README.md#compatibility).
 
-Branch protection on `main` requires the Lint, Commit Messages, Build, and Tests
-checks to pass before a pull request or merge-queue entry can merge. It doesn't gate
+Branch protection on `main` requires the Quality Assurance workflow (Lint, rtunk,
+Commit Messages) and the Go Quality Assurance workflow (Build, Test, Coverage) to pass before a pull request or merge-queue entry can merge. The exact status-check names
+are managed in Terraform (`axnic/.github-private`) and may appear as
+`<workflow job> / <job>`. It doesn't gate
 direct pushes to `main` - the push trigger above still validates those after the
 fact.
 

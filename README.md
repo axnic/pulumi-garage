@@ -1,3 +1,4 @@
+[![CI](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.qa.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.qa.yaml)
 [![GitHub release](https://img.shields.io/github/v/release/axnic/pulumi-garage?logo=github&sort=semver)](https://github.com/axnic/pulumi-garage/releases/latest)
 [![Go Reference](https://pkg.go.dev/badge/github.com/axnic/pulumi-garage/sdk/go/pulumi-garage.svg)](https://pkg.go.dev/github.com/axnic/pulumi-garage/sdk/go/pulumi-garage)
 [![npm version](https://img.shields.io/npm/v/%40axnic%2Fpulumi-garage.svg)](https://www.npmjs.com/package/@axnic/pulumi-garage)
@@ -126,13 +127,13 @@ that version alone rather than an aggregate:
 
 | Garage version | Status |
 |---|---|
-| v2.0.0 | [![E2E (Garage v2.0.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.0.yaml) |
-| v2.1.0 | [![E2E (Garage v2.1.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.1.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.1.yaml) |
-| v2.2.0 | [![E2E (Garage v2.2.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.2.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.2.yaml) |
-| v2.3.0 | [![E2E (Garage v2.3.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.3.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-garage-2.3.yaml) |
+| v2.0.0 | [![E2E (Garage v2.0.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.0.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.0.0.yaml) |
+| v2.1.0 | [![E2E (Garage v2.1.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.1.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.1.0.yaml) |
+| v2.2.0 | [![E2E (Garage v2.2.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.2.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.2.0.yaml) |
+| v2.3.0 | [![E2E (Garage v2.3.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.3.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.3.0.yaml) |
 
-Each workflow (`.github/workflows/merge_group,pull_request,push.e2e-garage-2.*.yaml`) is
-a thin wrapper calling the reusable `_reusable-e2e.yaml` job with that version pinned -
+Each workflow (`.github/workflows/merge_group,pull_request,push.e2e-v2.*.yaml`) is
+a thin caller of the central reusable E2E workflow in `axnic/.github` with that version pinned (new versions are added by that repo's E2E Sync workflow, which opens a PR) -
 GitHub Actions status badges are per-workflow-file, not per-matrix-leg, which is why
 this is four small files rather than one `strategy.matrix` job. `--single-node` (the
 fast layout-bootstrap path) only exists from Garage v2.3.0 onward, so

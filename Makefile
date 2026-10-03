@@ -135,7 +135,7 @@ build_sdks: dotnet_sdk go_sdk nodejs_sdk python_sdk
 only_build:: build
 
 lint:
-	golangci-lint --path-prefix provider --config .golangci.yml run --fix
+	rtunk check .
 
 
 install:: install_nodejs_sdk install_dotnet_sdk
