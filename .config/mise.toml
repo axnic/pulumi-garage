@@ -25,10 +25,10 @@ python = '3.11.8'
 "github:pulumi/pulumictl" = '0.0.50'
 "github:pulumi/schema-tools" = "0.6.0"
 "go:github.com/pulumi/upgrade-provider" = "main"
-golangci-lint = "2.12.2"                                 # See note about about overrides if you need to customize this.
+"github:axnic/rtunk" = "latest"                          # Lint stack (golangci-lint, gofmt, yamllint, ...) driven by .rtunk/rtunk.yaml
+"go:golang.org/x/vuln/cmd/govulncheck" = "latest"        # Known-CVE scan of the provider's Go dependencies (`security:audit`)
 "npm:@commitlint/cli" = "21.2.1"
 "npm:yarn" = "1.22.22"
-trunk = "1.3.4"
 
 [settings]
 experimental = true                 # Required for Go binaries (e.g. pulumictl).
@@ -44,3 +44,75 @@ python.github_attestations = false
 
 [plugins]
 vfox-pulumi = "https://github.com/pulumi/vfox-pulumi"
+
+# =============================================================================
+# Tasks
+# =============================================================================
+# CI never calls tools directly: it runs `mise run <task>`. Each task is also
+# the exact command to run locally; `ci` chains them as the quality gate.
+
+[tasks.lint]
+description = "Lint the whole repository with rtunk"
+run = "rtunk check ."
+
+[tasks."lint:fix"]
+description = "Lint the whole repository with rtunk and apply the fixes"
+run = "rtunk check --fix ."
+
+[tasks."ci:commitlint"]
+description = "Validate commit messages in a range (usage: mise run ci:commitlint -- --from <sha> --to <sha>)"
+run = "commitlint --verbose"
+
+[tasks."ci:build"]
+description = "Build the provider binary"
+run = "make provider"
+
+[tasks."ci:test"]
+description = "Run the provider unit tests (writes provider/coverage.txt)"
+run = "make test"
+
+# A floor, not a target: it catches coverage regressions without pinning
+# today's exact number. Raise it as coverage improves; never lower it to make
+# a failing PR pass. Reads provider/coverage.txt, so run ci:test first.
+[tasks."ci:coverage"]
+description = "Fail if total statement coverage is below the floor (default 60%)"
+env = { COVERAGE_FLOOR = "60" }
+run = '''
+total=$(go tool cover -func=provider/coverage.txt | tail -1 | awk '{print $NF}' | tr -d '%')
+echo "Total statement coverage: ${total}%"
+awk -v total="$total" -v floor="$COVERAGE_FLOOR" 'BEGIN { if (total + 0 < floor + 0) { print "coverage " total "% is below the " floor "% floor"; exit 1 } }'
+'''
+
+# Go: govulncheck on the provider module. The nodejs SDK is generated and has a
+# yarn.lock, so it is audited too (production deps only); python and dotnet
+# SDKs have no lockfile and are not audited.
+[tasks."security:audit"]
+description = "Audit the dependencies (Go module and nodejs SDK) for known vulnerabilities"
+run = '''
+govulncheck ./...
+cd sdk/nodejs && yarn audit --groups dependencies
+'''
+
+# E2E_VERSION is the Garage image tag (e.g. v2.3.0); needs docker.
+[tasks."ci:e2e"]
+description = "Run the E2E suite against a dockerized Garage (usage: E2E_VERSION=v2.3.0 mise run ci:e2e)"
+run = '''
+: "${E2E_VERSION:?E2E_VERSION is required (e.g. v2.3.0)}"
+export GARAGE_VERSION="$E2E_VERSION"
+make test_e2e
+'''
+
+[tasks."ci:e2e:versions"]
+description = "Print one Garage version per distinct stable v2 minor, as vMAJOR.MINOR.0 (one per line)"
+run = '''
+set -euo pipefail
+curl -sfL "https://git.deuxfleurs.fr/api/v1/repos/Deuxfleurs/garage/releases" \
+  | jq -r '.[] | select(.prerelease == false) | .tag_name' \
+  | grep -E '^v2\.[0-9]+\.[0-9]+$' \
+  | sed -E 's/^(v2\.[0-9]+)\..*/\1.0/' | sort -uV
+'''
+
+[tasks.ci]
+description = "Local equivalent of the CI quality gate (commit messages and E2E excluded)"
+depends = ["lint", "ci:build", "ci:test"]
+run = "mise run ci:coverage"
