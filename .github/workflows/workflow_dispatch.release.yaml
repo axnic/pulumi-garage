@@ -1,6 +1,21 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# =============================================================================
+# Release — Create a versioned release from the GitHub UI
+# =============================================================================
+# Triggered manually (Actions → Release → Run workflow). Set either `bump` or `version`,
+# not both. prepare runs `mise run ci`, computes the version, writes the notes and pushes
+# the tag; publish (pulumi.publish) builds the artifacts of the draft GitHub Release
+# and publishes it (out of draft, so `pulumi plugin install` can download the provider).
+# Requires the mise task: ci.
+#
+# Jobs:
+#   prepare — run `mise run ci`, compute the version, write the notes, push the tag
+#   publish — build and publish the GitHub Release (out of draft), from pulumi.publish
+#
 # MANAGED BY TERRAFORM (axnic/.github-private, modules/workflows) — do not edit by hand.
 # Reusable workflow: https://github.com/axnic/.github/blob/main/.github/workflows/release.prepare.yaml
+# =============================================================================
 
 name: Release
 
@@ -34,6 +49,9 @@ concurrency:
 permissions: {}
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # prepare — run `mise run ci`, compute the version, write the notes, push the tag
+  # ---------------------------------------------------------------------------
   prepare:
     name: 🏷️ Prepare
     # Intentionally not pinned: follows the latest axnic/.github (owner-controlled repo).
@@ -47,6 +65,9 @@ jobs:
       notes: "${{ inputs.notes }}"
       version: "${{ inputs.version }}"
 
+  # ---------------------------------------------------------------------------
+  # publish — build and publish the GitHub Release (out of draft), from pulumi.publish
+  # ---------------------------------------------------------------------------
   publish:
     name: 🚀 Publish
     needs: prepare
