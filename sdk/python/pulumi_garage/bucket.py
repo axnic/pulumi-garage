@@ -22,16 +22,20 @@ __all__ = ['BucketArgs', 'Bucket']
 class BucketArgs:
     def __init__(__self__, *,
                  global_alias: Optional[pulumi.Input[_builtins.str]] = None,
+                 lifecycle_rules: Optional[pulumi.Input[Sequence[pulumi.Input['LifecycleRuleArgsArgs']]]] = None,
                  quotas: Optional[pulumi.Input['QuotasArgsArgs']] = None,
                  website: Optional[pulumi.Input['WebsiteArgsArgs']] = None):
         """
         The set of arguments for constructing a Bucket resource.
         :param pulumi.Input[_builtins.str] global_alias: The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
+        :param pulumi.Input[Sequence[pulumi.Input['LifecycleRuleArgsArgs']]] lifecycle_rules: S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
         :param pulumi.Input['QuotasArgsArgs'] quotas: Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.
         :param pulumi.Input['WebsiteArgsArgs'] website: Static-website hosting configuration for the bucket. Omit to leave website hosting disabled.
         """
         if global_alias is not None:
             pulumi.set(__self__, "global_alias", global_alias)
+        if lifecycle_rules is not None:
+            pulumi.set(__self__, "lifecycle_rules", lifecycle_rules)
         if quotas is not None:
             pulumi.set(__self__, "quotas", quotas)
         if website is not None:
@@ -48,6 +52,18 @@ class BucketArgs:
     @global_alias.setter
     def global_alias(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "global_alias", value)
+
+    @_builtins.property
+    @pulumi.getter(name="lifecycleRules")
+    def lifecycle_rules(self) -> Optional[pulumi.Input[Sequence[pulumi.Input['LifecycleRuleArgsArgs']]]]:
+        """
+        S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+        """
+        return pulumi.get(self, "lifecycle_rules")
+
+    @lifecycle_rules.setter
+    def lifecycle_rules(self, value: Optional[pulumi.Input[Sequence[pulumi.Input['LifecycleRuleArgsArgs']]]]):
+        pulumi.set(self, "lifecycle_rules", value)
 
     @_builtins.property
     @pulumi.getter
@@ -81,6 +97,7 @@ class Bucket(pulumi.CustomResource):
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
                  global_alias: Optional[pulumi.Input[_builtins.str]] = None,
+                 lifecycle_rules: Optional[pulumi.Input[Sequence[pulumi.Input[Union['LifecycleRuleArgsArgs', 'LifecycleRuleArgsArgsDict']]]]] = None,
                  quotas: Optional[pulumi.Input[Union['QuotasArgsArgs', 'QuotasArgsArgsDict']]] = None,
                  website: Optional[pulumi.Input[Union['WebsiteArgsArgs', 'WebsiteArgsArgsDict']]] = None,
                  __props__=None):
@@ -89,6 +106,7 @@ class Bucket(pulumi.CustomResource):
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] global_alias: The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
+        :param pulumi.Input[Sequence[pulumi.Input[Union['LifecycleRuleArgsArgs', 'LifecycleRuleArgsArgsDict']]]] lifecycle_rules: S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
         :param pulumi.Input[Union['QuotasArgsArgs', 'QuotasArgsArgsDict']] quotas: Storage quotas for the bucket. Omit either field, or the whole block, to leave that limit unset.
         :param pulumi.Input[Union['WebsiteArgsArgs', 'WebsiteArgsArgsDict']] website: Static-website hosting configuration for the bucket. Omit to leave website hosting disabled.
         """
@@ -116,6 +134,7 @@ class Bucket(pulumi.CustomResource):
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
                  global_alias: Optional[pulumi.Input[_builtins.str]] = None,
+                 lifecycle_rules: Optional[pulumi.Input[Sequence[pulumi.Input[Union['LifecycleRuleArgsArgs', 'LifecycleRuleArgsArgsDict']]]]] = None,
                  quotas: Optional[pulumi.Input[Union['QuotasArgsArgs', 'QuotasArgsArgsDict']]] = None,
                  website: Optional[pulumi.Input[Union['WebsiteArgsArgs', 'WebsiteArgsArgsDict']]] = None,
                  __props__=None):
@@ -128,6 +147,7 @@ class Bucket(pulumi.CustomResource):
             __props__ = BucketArgs.__new__(BucketArgs)
 
             __props__.__dict__["global_alias"] = global_alias
+            __props__.__dict__["lifecycle_rules"] = lifecycle_rules
             __props__.__dict__["quotas"] = quotas
             __props__.__dict__["website"] = website
             __props__.__dict__["bytes"] = None
@@ -158,6 +178,7 @@ class Bucket(pulumi.CustomResource):
         __props__.__dict__["bytes"] = None
         __props__.__dict__["created_at"] = None
         __props__.__dict__["global_alias"] = None
+        __props__.__dict__["lifecycle_rules"] = None
         __props__.__dict__["objects"] = None
         __props__.__dict__["quotas"] = None
         __props__.__dict__["website"] = None
@@ -186,6 +207,14 @@ class Bucket(pulumi.CustomResource):
         The bucket's human-readable global alias, e.g. "my-app-data". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider.
         """
         return pulumi.get(self, "global_alias")
+
+    @_builtins.property
+    @pulumi.getter(name="lifecycleRules")
+    def lifecycle_rules(self) -> pulumi.Output[Optional[Sequence['outputs.LifecycleRuleArgs']]]:
+        """
+        S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.
+        """
+        return pulumi.get(self, "lifecycle_rules")
 
     @_builtins.property
     @pulumi.getter

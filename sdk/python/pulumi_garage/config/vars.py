@@ -21,6 +21,13 @@ __config__ = pulumi.Config('garage')
 
 class _ExportableConfig(types.ModuleType):
     @_builtins.property
+    def access_key_id(self) -> Optional[str]:
+        """
+        An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+        """
+        return __config__.get('accessKeyId')
+
+    @_builtins.property
     def admin_token(self) -> Optional[str]:
         """
         A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
@@ -33,4 +40,25 @@ class _ExportableConfig(types.ModuleType):
         The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
         """
         return __config__.get('endpoint')
+
+    @_builtins.property
+    def s3_endpoint(self) -> Optional[str]:
+        """
+        The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+        """
+        return __config__.get('s3Endpoint')
+
+    @_builtins.property
+    def s3_region(self) -> Optional[str]:
+        """
+        The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+        """
+        return __config__.get('s3Region')
+
+    @_builtins.property
+    def secret_access_key(self) -> Optional[str]:
+        """
+        The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+        """
+        return __config__.get('secretAccessKey')
 

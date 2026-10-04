@@ -34,6 +34,8 @@ type fakeBucketAPI struct {
 	deleteBucket func(ctx context.Context, id string) error
 	addAlias     func(ctx context.Context, bucketID, alias string) (*garageclient.BucketInfo, error)
 	removeAlias  func(ctx context.Context, bucketID, alias string) (*garageclient.BucketInfo, error)
+	setLifecycle func(ctx context.Context, bucketName string, rules []garageclient.LifecycleRule) error
+	getLifecycle func(ctx context.Context, bucketName string) ([]garageclient.LifecycleRule, error)
 }
 
 func (f *fakeBucketAPI) CreateBucket(ctx context.Context, globalAlias string) (*garageclient.BucketInfo, error) {
@@ -64,6 +66,24 @@ func (f *fakeBucketAPI) RemoveGlobalBucketAlias(
 	ctx context.Context, bucketID, alias string,
 ) (*garageclient.BucketInfo, error) {
 	return f.removeAlias(ctx, bucketID, alias)
+}
+
+func (f *fakeBucketAPI) SetBucketLifecycle(
+	ctx context.Context, bucketName string, rules []garageclient.LifecycleRule,
+) error {
+	if f.setLifecycle == nil {
+		return garageclient.ErrS3NotConfigured
+	}
+	return f.setLifecycle(ctx, bucketName, rules)
+}
+
+func (f *fakeBucketAPI) GetBucketLifecycle(
+	ctx context.Context, bucketName string,
+) ([]garageclient.LifecycleRule, error) {
+	if f.getLifecycle == nil {
+		return nil, garageclient.ErrS3NotConfigured
+	}
+	return f.getLifecycle(ctx, bucketName)
 }
 
 const testBucketAlias = "my-bucket"
@@ -242,6 +262,144 @@ func TestBucketDeleteIsIdempotent(t *testing.T) {
 
 	err := deleteBucket(context.Background(), api, "already-gone")
 	require.NoError(t, err)
+}
+
+func TestBucketCreateWithLifecycleRulesRequiresAlias(t *testing.T) {
+	t.Parallel()
+
+	api := &fakeBucketAPI{
+		createBucket: func(context.Context, string) (*garageclient.BucketInfo, error) {
+			info := sampleBucketInfo()
+			info.GlobalAliases = nil
+			return info, nil
+		},
+	}
+
+	_, _, err := createBucket(context.Background(), api, BucketArgs{
+		LifecycleRules: []LifecycleRuleArgs{{ID: "r1", Enabled: true}},
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, errLifecycleRulesNeedAlias)
+}
+
+func TestBucketCreateAppliesLifecycleRules(t *testing.T) {
+	t.Parallel()
+
+	var gotBucketName string
+	var gotRules []garageclient.LifecycleRule
+	api := &fakeBucketAPI{
+		createBucket: func(context.Context, string) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+		setLifecycle: func(_ context.Context, bucketName string, rules []garageclient.LifecycleRule) error {
+			gotBucketName = bucketName
+			gotRules = rules
+			return nil
+		},
+	}
+
+	alias := testBucketAlias
+	days := 30
+	_, _, err := createBucket(context.Background(), api, BucketArgs{
+		GlobalAlias:    &alias,
+		LifecycleRules: []LifecycleRuleArgs{{ID: "expire", Enabled: true, ExpirationDays: &days}},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, testBucketAlias, gotBucketName, "lifecycle rules must be set by alias, not by Admin API ID")
+	require.Len(t, gotRules, 1)
+	assert.Equal(t, "expire", gotRules[0].ID)
+	require.NotNil(t, gotRules[0].ExpirationDays)
+	assert.Equal(t, 30, *gotRules[0].ExpirationDays)
+}
+
+func TestBucketUpdateAppliesLifecycleRules(t *testing.T) {
+	t.Parallel()
+
+	var setCalled bool
+	var gotRules []garageclient.LifecycleRule
+	api := &fakeBucketAPI{
+		updateBucket: func(context.Context, string, *garageclient.UpdateBucketInput) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+		setLifecycle: func(_ context.Context, bucketName string, rules []garageclient.LifecycleRule) error {
+			setCalled = true
+			assert.Equal(t, testBucketAlias, bucketName)
+			gotRules = rules
+			return nil
+		},
+		getBucket: func(context.Context, string) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+	}
+
+	alias := testBucketAlias
+	_, err := updateBucket(context.Background(), api, "bucket-id-123",
+		BucketArgs{GlobalAlias: &alias, LifecycleRules: []LifecycleRuleArgs{{ID: "r1", Enabled: true}}},
+		BucketArgs{GlobalAlias: &alias, LifecycleRules: nil})
+	require.NoError(t, err)
+
+	require.True(t, setCalled, "removing every rule must still call SetBucketLifecycle, to delete the config server-side")
+	assert.Empty(t, gotRules)
+}
+
+func TestBucketUpdateWithoutLifecycleRulesDoesNotCallSetBucketLifecycle(t *testing.T) {
+	t.Parallel()
+
+	setCalled := false
+	api := &fakeBucketAPI{
+		updateBucket: func(context.Context, string, *garageclient.UpdateBucketInput) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+		setLifecycle: func(context.Context, string, []garageclient.LifecycleRule) error {
+			setCalled = true
+			return nil
+		},
+		getBucket: func(context.Context, string) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+	}
+
+	alias := testBucketAlias
+	_, err := updateBucket(context.Background(), api, "bucket-id-123",
+		BucketArgs{GlobalAlias: &alias}, BucketArgs{GlobalAlias: &alias})
+	require.NoError(t, err)
+	assert.False(t, setCalled)
+}
+
+func TestBucketReadPopulatesLifecycleRules(t *testing.T) {
+	t.Parallel()
+
+	days := 14
+	api := &fakeBucketAPI{
+		getBucket: func(context.Context, string) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+		getLifecycle: func(_ context.Context, bucketName string) ([]garageclient.LifecycleRule, error) {
+			assert.Equal(t, testBucketAlias, bucketName)
+			return []garageclient.LifecycleRule{{ID: "expire", Enabled: true, ExpirationDays: &days}}, nil
+		},
+	}
+
+	_, state, err := readBucket(context.Background(), api, "bucket-id-123")
+	require.NoError(t, err)
+	require.Len(t, state.LifecycleRules, 1)
+	assert.Equal(t, "expire", state.LifecycleRules[0].ID)
+}
+
+func TestBucketReadIgnoresS3NotConfigured(t *testing.T) {
+	t.Parallel()
+
+	api := &fakeBucketAPI{
+		getBucket: func(context.Context, string) (*garageclient.BucketInfo, error) {
+			return sampleBucketInfo(), nil
+		},
+		// getLifecycle left nil: the fake returns ErrS3NotConfigured.
+	}
+
+	_, state, err := readBucket(context.Background(), api, "bucket-id-123")
+	require.NoError(t, err)
+	assert.Nil(t, state.LifecycleRules)
 }
 
 func TestBucketDeletePropagatesOtherErrors(t *testing.T) {

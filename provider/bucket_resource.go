@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 
@@ -32,6 +33,8 @@ type bucketAPI interface {
 	DeleteBucket(ctx context.Context, id string) error
 	AddGlobalBucketAlias(ctx context.Context, bucketID, alias string) (*garageclient.BucketInfo, error)
 	RemoveGlobalBucketAlias(ctx context.Context, bucketID, alias string) (*garageclient.BucketInfo, error)
+	SetBucketLifecycle(ctx context.Context, bucketName string, rules []garageclient.LifecycleRule) error
+	GetBucketLifecycle(ctx context.Context, bucketName string) ([]garageclient.LifecycleRule, error)
 }
 
 // Bucket manages a Garage bucket: its (single) global alias, static-website
@@ -74,6 +77,31 @@ func (w *WebsiteArgs) Annotate(a infer.Annotator) {
 		"Defaults to Garage's built-in error page if unset.")
 }
 
+// LifecycleRuleArgs is one rule in a bucket's S3 lifecycle configuration:
+// automatic object expiration and/or incomplete-multipart-upload cleanup.
+// Managed over Garage's S3 API rather than its Admin API, so it requires
+// both the provider's S3 API config and the bucket's globalAlias to be set.
+type LifecycleRuleArgs struct {
+	ID                                 string `pulumi:"id"`
+	Prefix                             string `pulumi:"prefix,optional"`
+	Enabled                            bool   `pulumi:"enabled"`
+	ExpirationDays                     *int   `pulumi:"expirationDays,optional"`
+	AbortIncompleteMultipartUploadDays *int   `pulumi:"abortIncompleteMultipartUploadDays,optional"`
+}
+
+var _ infer.Annotated = (*LifecycleRuleArgs)(nil)
+
+// Annotate provides schema descriptions for LifecycleRuleArgs' fields.
+func (l *LifecycleRuleArgs) Annotate(a infer.Annotator) {
+	a.Describe(&l.ID, "A unique identifier for this rule within the bucket.")
+	a.Describe(&l.Prefix, "Only objects whose key starts with this prefix are affected. Omit to match every "+
+		"object in the bucket.")
+	a.Describe(&l.Enabled, "Whether this rule is active.")
+	a.Describe(&l.ExpirationDays, "Delete objects this many days after creation. Omit to not expire objects by age.")
+	a.Describe(&l.AbortIncompleteMultipartUploadDays, "Abort incomplete multipart uploads this many days after "+
+		"they were initiated. Omit to not clean these up automatically.")
+}
+
 // BucketArgs are the inputs to the Bucket resource.
 type BucketArgs struct {
 	// GlobalAlias is the bucket's human-readable global alias, e.g.
@@ -83,6 +111,11 @@ type BucketArgs struct {
 	GlobalAlias *string      `pulumi:"globalAlias,optional"`
 	Website     *WebsiteArgs `pulumi:"website,optional"`
 	Quotas      *QuotasArgs  `pulumi:"quotas,optional"`
+	// LifecycleRules requires both the provider's S3 API config
+	// (s3Endpoint/accessKeyId/secretAccessKey) and globalAlias to be set,
+	// since lifecycle rules are only reachable over the S3 API, which
+	// addresses buckets by name rather than by internal ID.
+	LifecycleRules []LifecycleRuleArgs `pulumi:"lifecycleRules,optional"`
 }
 
 // BucketState is what's persisted in state for a Bucket.
@@ -105,6 +138,10 @@ func (a *BucketArgs) Annotate(annotator infer.Annotator) {
 		"website hosting disabled.")
 	annotator.Describe(&a.Quotas, "Storage quotas for the bucket. Omit either field, or the whole block, "+
 		"to leave that limit unset.")
+	annotator.Describe(&a.LifecycleRules, "S3 lifecycle rules for the bucket (object expiration, "+
+		"incomplete-multipart-upload cleanup). Requires the provider's S3 API config "+
+		"(s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since "+
+		"lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID.")
 }
 
 var _ infer.Annotated = (*BucketState)(nil)
@@ -181,6 +218,15 @@ func createBucket(ctx context.Context, api bucketAPI, args BucketArgs) (BucketSt
 		}
 	}
 
+	if len(args.LifecycleRules) > 0 {
+		if alias == "" {
+			return BucketState{}, "", errLifecycleRulesNeedAlias
+		}
+		if err := api.SetBucketLifecycle(ctx, alias, lifecycleRulesToClient(args.LifecycleRules)); err != nil {
+			return BucketState{}, "", err
+		}
+	}
+
 	return bucketStateFrom(info, args), info.ID, nil
 }
 
@@ -193,7 +239,22 @@ func readBucket(ctx context.Context, api bucketAPI, id string) (string, BucketSt
 		}
 		return "", BucketState{}, err
 	}
-	return info.ID, bucketStateFrom(info, argsFromBucketInfo(info)), nil
+
+	args := argsFromBucketInfo(info)
+	if len(info.GlobalAliases) > 0 {
+		rules, err := api.GetBucketLifecycle(ctx, info.GlobalAliases[0])
+		switch {
+		case errors.Is(err, garageclient.ErrS3NotConfigured):
+			// S3 API not configured on this provider: leave lifecycle
+			// state untouched rather than failing the whole refresh.
+		case err != nil:
+			return "", BucketState{}, err
+		default:
+			args.LifecycleRules = lifecycleRulesFromClient(rules)
+		}
+	}
+
+	return info.ID, bucketStateFrom(info, args), nil
 }
 
 func updateBucket(ctx context.Context, api bucketAPI, id string, oldArgs, newArgs BucketArgs) (BucketState, error) {
@@ -221,12 +282,29 @@ func updateBucket(ctx context.Context, api bucketAPI, id string, oldArgs, newArg
 		return BucketState{}, err
 	}
 
+	if len(oldArgs.LifecycleRules) > 0 || len(newArgs.LifecycleRules) > 0 {
+		if newAlias == "" {
+			return BucketState{}, errLifecycleRulesNeedAlias
+		}
+		if err := api.SetBucketLifecycle(ctx, newAlias, lifecycleRulesToClient(newArgs.LifecycleRules)); err != nil {
+			return BucketState{}, err
+		}
+	}
+
 	info, err := api.GetBucketInfo(ctx, id)
 	if err != nil {
 		return BucketState{}, err
 	}
 	return bucketStateFrom(info, newArgs), nil
 }
+
+// errLifecycleRulesNeedAlias is returned when lifecycleRules is set but the
+// bucket has no globalAlias: lifecycle rules are managed over the S3 API,
+// which addresses buckets by name, so there's no way to reach the bucket.
+var errLifecycleRulesNeedAlias = fmt.Errorf(
+	"garage provider: lifecycleRules requires globalAlias to be set on the bucket, " +
+		"since lifecycle rules are managed over the S3 API, which addresses buckets by name",
+)
 
 func deleteBucket(ctx context.Context, api bucketAPI, id string) error {
 	err := api.DeleteBucket(ctx, id)
@@ -301,6 +379,37 @@ func argsFromBucketInfo(info *garageclient.BucketInfo) BucketArgs {
 			quotas.MaxObjects = &objects
 		}
 		args.Quotas = quotas
+	}
+	return args
+}
+
+func lifecycleRulesToClient(args []LifecycleRuleArgs) []garageclient.LifecycleRule {
+	rules := make([]garageclient.LifecycleRule, len(args))
+	for i, a := range args {
+		rules[i] = garageclient.LifecycleRule{
+			ID:                                 a.ID,
+			Prefix:                             a.Prefix,
+			Enabled:                            a.Enabled,
+			ExpirationDays:                     a.ExpirationDays,
+			AbortIncompleteMultipartUploadDays: a.AbortIncompleteMultipartUploadDays,
+		}
+	}
+	return rules
+}
+
+func lifecycleRulesFromClient(rules []garageclient.LifecycleRule) []LifecycleRuleArgs {
+	if len(rules) == 0 {
+		return nil
+	}
+	args := make([]LifecycleRuleArgs, len(rules))
+	for i, r := range rules {
+		args[i] = LifecycleRuleArgs{
+			ID:                                 r.ID,
+			Prefix:                             r.Prefix,
+			Enabled:                            r.Enabled,
+			ExpirationDays:                     r.ExpirationDays,
+			AbortIncompleteMultipartUploadDays: r.AbortIncompleteMultipartUploadDays,
+		}
 	}
 	return args
 }

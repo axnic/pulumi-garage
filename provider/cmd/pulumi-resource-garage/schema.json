@@ -38,6 +38,10 @@
   },
   "config": {
     "variables": {
+      "accessKeyId": {
+        "type": "string",
+        "description": "An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set."
+      },
       "adminToken": {
         "type": "string",
         "description": "A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.",
@@ -46,10 +50,52 @@
       "endpoint": {
         "type": "string",
         "description": "The base URL of the Garage Admin API, e.g. \"http://localhost:3903\". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set."
+      },
+      "s3Endpoint": {
+        "type": "string",
+        "description": "The base URL of the Garage S3 API, e.g. \"http://localhost:3900\". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set."
+      },
+      "s3Region": {
+        "type": "string",
+        "description": "The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to \"garage\" (Garage's own default) if neither is set."
+      },
+      "secretAccessKey": {
+        "type": "string",
+        "description": "The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.",
+        "secret": true
       }
     }
   },
   "types": {
+    "garage:index:LifecycleRuleArgs": {
+      "properties": {
+        "abortIncompleteMultipartUploadDays": {
+          "type": "integer",
+          "description": "Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this rule is active."
+        },
+        "expirationDays": {
+          "type": "integer",
+          "description": "Delete objects this many days after creation. Omit to not expire objects by age."
+        },
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this rule within the bucket."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket."
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "enabled"
+      ]
+    },
     "garage:index:PermissionsArgs": {
       "properties": {
         "owner": {
@@ -99,6 +145,10 @@
   },
   "provider": {
     "properties": {
+      "accessKeyId": {
+        "type": "string",
+        "description": "An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set."
+      },
       "adminToken": {
         "type": "string",
         "description": "A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.",
@@ -107,9 +157,26 @@
       "endpoint": {
         "type": "string",
         "description": "The base URL of the Garage Admin API, e.g. \"http://localhost:3903\". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set."
+      },
+      "s3Endpoint": {
+        "type": "string",
+        "description": "The base URL of the Garage S3 API, e.g. \"http://localhost:3900\". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set."
+      },
+      "s3Region": {
+        "type": "string",
+        "description": "The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to \"garage\" (Garage's own default) if neither is set."
+      },
+      "secretAccessKey": {
+        "type": "string",
+        "description": "The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.",
+        "secret": true
       }
     },
     "inputProperties": {
+      "accessKeyId": {
+        "type": "string",
+        "description": "An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set."
+      },
       "adminToken": {
         "type": "string",
         "description": "A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.",
@@ -118,6 +185,19 @@
       "endpoint": {
         "type": "string",
         "description": "The base URL of the Garage Admin API, e.g. \"http://localhost:3903\". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set."
+      },
+      "s3Endpoint": {
+        "type": "string",
+        "description": "The base URL of the Garage S3 API, e.g. \"http://localhost:3900\". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set."
+      },
+      "s3Region": {
+        "type": "string",
+        "description": "The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to \"garage\" (Garage's own default) if neither is set."
+      },
+      "secretAccessKey": {
+        "type": "string",
+        "description": "The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.",
+        "secret": true
       }
     }
   },
@@ -135,6 +215,13 @@
         "globalAlias": {
           "type": "string",
           "description": "The bucket's human-readable global alias, e.g. \"my-app-data\". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider."
+        },
+        "lifecycleRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/garage:index:LifecycleRuleArgs"
+          },
+          "description": "S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID."
         },
         "objects": {
           "type": "integer",
@@ -158,6 +245,13 @@
         "globalAlias": {
           "type": "string",
           "description": "The bucket's human-readable global alias, e.g. \"my-app-data\". Buckets can be created without one and addressed only by ID, but an alias is required to use the bucket over the S3 API with most clients. Only a single global alias is supported; local (per-key) aliases and multiple global aliases are not managed by this provider."
+        },
+        "lifecycleRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/garage:index:LifecycleRuleArgs"
+          },
+          "description": "S3 lifecycle rules for the bucket (object expiration, incomplete-multipart-upload cleanup). Requires the provider's S3 API config (s3Endpoint/accessKeyId/secretAccessKey) to be set, and globalAlias to be set on this bucket, since lifecycle rules are managed over the S3 API, which addresses buckets by name rather than by internal ID."
         },
         "quotas": {
           "$ref": "#/types/garage:index:QuotasArgs",

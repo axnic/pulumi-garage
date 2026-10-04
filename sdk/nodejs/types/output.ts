@@ -5,6 +5,29 @@ import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "../types/input";
 import * as outputs from "../types/output";
 
+export interface LifecycleRuleArgs {
+    /**
+     * Abort incomplete multipart uploads this many days after they were initiated. Omit to not clean these up automatically.
+     */
+    abortIncompleteMultipartUploadDays?: number;
+    /**
+     * Whether this rule is active.
+     */
+    enabled: boolean;
+    /**
+     * Delete objects this many days after creation. Omit to not expire objects by age.
+     */
+    expirationDays?: number;
+    /**
+     * A unique identifier for this rule within the bucket.
+     */
+    id: string;
+    /**
+     * Only objects whose key starts with this prefix are affected. Omit to match every object in the bucket.
+     */
+    prefix?: string;
+}
+
 export interface PermissionsArgs {
     /**
      * Whether the key has owner rights on the bucket (manage bucket-level settings such as its website configuration or quotas via the S3 API).

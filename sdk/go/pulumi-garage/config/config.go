@@ -11,6 +11,11 @@ import (
 
 var _ = internal.GetEnvOrDefault
 
+// An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+func GetAccessKeyId(ctx *pulumi.Context) string {
+	return config.Get(ctx, "garage:accessKeyId")
+}
+
 // A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
 func GetAdminToken(ctx *pulumi.Context) string {
 	return config.Get(ctx, "garage:adminToken")
@@ -19,4 +24,19 @@ func GetAdminToken(ctx *pulumi.Context) string {
 // The base URL of the Garage Admin API, e.g. "http://localhost:3903". Falls back to the GARAGE_ADMIN_ENDPOINT environment variable if not set.
 func GetEndpoint(ctx *pulumi.Context) string {
 	return config.Get(ctx, "garage:endpoint")
+}
+
+// The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+func GetS3Endpoint(ctx *pulumi.Context) string {
+	return config.Get(ctx, "garage:s3Endpoint")
+}
+
+// The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+func GetS3Region(ctx *pulumi.Context) string {
+	return config.Get(ctx, "garage:s3Region")
+}
+
+// The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+func GetSecretAccessKey(ctx *pulumi.Context) string {
+	return config.Get(ctx, "garage:secretAccessKey")
 }

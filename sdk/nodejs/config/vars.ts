@@ -8,6 +8,17 @@ declare var exports: any;
 const __config = new pulumi.Config("garage");
 
 /**
+ * An access key ID authorized against the Garage S3 API. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ACCESS_KEY_ID environment variable if not set.
+ */
+export declare const accessKeyId: string | undefined;
+Object.defineProperty(exports, "accessKeyId", {
+    get() {
+        return __config.get("accessKeyId");
+    },
+    enumerable: true,
+});
+
+/**
  * A bearer token authorized against the Garage Admin API. Falls back to the GARAGE_ADMIN_TOKEN environment variable if not set.
  */
 export declare const adminToken: string | undefined;
@@ -25,6 +36,39 @@ export declare const endpoint: string | undefined;
 Object.defineProperty(exports, "endpoint", {
     get() {
         return __config.get("endpoint");
+    },
+    enumerable: true,
+});
+
+/**
+ * The base URL of the Garage S3 API, e.g. "http://localhost:3900". Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_ENDPOINT environment variable if not set.
+ */
+export declare const s3Endpoint: string | undefined;
+Object.defineProperty(exports, "s3Endpoint", {
+    get() {
+        return __config.get("s3Endpoint");
+    },
+    enumerable: true,
+});
+
+/**
+ * The S3 region to sign requests for. Falls back to the GARAGE_S3_REGION environment variable, then to "garage" (Garage's own default) if neither is set.
+ */
+export declare const s3Region: string | undefined;
+Object.defineProperty(exports, "s3Region", {
+    get() {
+        return __config.get("s3Region");
+    },
+    enumerable: true,
+});
+
+/**
+ * The secret access key paired with accessKeyId. Only required to manage a Bucket's lifecycleRules. Falls back to the GARAGE_S3_SECRET_ACCESS_KEY environment variable if not set.
+ */
+export declare const secretAccessKey: string | undefined;
+Object.defineProperty(exports, "secretAccessKey", {
+    get() {
+        return __config.get("secretAccessKey");
     },
     enumerable: true,
 });
