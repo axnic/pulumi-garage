@@ -59,15 +59,16 @@
   (classic branch-protection required-status-checks only covers PR/merge-queue
   merges, not raw pushes), so the direct-push-to-main workflow described above
   is unaffected.
-- Dependabot (`.github/dependabot.yml`): routine weekly version-update PRs for
-  github-actions, gomod and npm (/examples); what happens to them afterwards
-  (approval, auto-merge) is handled by the central Dependency Updates workflow in
-  `axnic/.github`, not by a file in this repo. Dependabot's own PR titles are never
-  sentence-case and use scope `deps-dev` for dev dependencies (not in
-  `.commitlintrc.js`'s scope-enum, only `deps` is allowed), so no `commit-message:`
-  config is set here and merge automation must build a compliant subject. "Allow
-  auto-merge" and Discussions are live repo settings (Discussions: linked from
-  `.github/ISSUE_TEMPLATE/config.yml`).
+- Renovate (`renovate.json`, extending `local>axnic/.github:pulumi`): weekly
+  dependency updates for github-actions (pinned by digest), gomod, npm
+  (/examples) and mise. Minor and patch updates from 1.0 on are grouped; each
+  0.x minor and each major gets its own PR. PR titles are `build(deps): ...` in
+  sentence case (scope `deps`, the only dependency scope in `.commitlintrc.js`).
+  What happens to a PR afterwards (approval, auto-merge) is handled by the
+  central Dependency Updates workflow in `axnic/.github`, not by a file in this
+  repo. Dependabot alerts and security updates stay enabled (Security tab);
+  there is no `dependabot.yml`. "Allow auto-merge" and Discussions are live
+  repo settings (Discussions: linked from `.github/ISSUE_TEMPLATE/config.yml`).
 - `make test_all` was removed from the Makefile — it referenced
   `provider/pkg` and `tests/sdk/{nodejs,python,dotnet,go}`, none of which
   exist in this repo (leftover from the `pulumi-resource-provider-boilerplate`
