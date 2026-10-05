@@ -138,14 +138,15 @@ that version alone rather than an aggregate:
 | v2.1.0 | [![E2E (Garage v2.1.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.1.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.1.0.yaml) |
 | v2.2.0 | [![E2E (Garage v2.2.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.2.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.2.0.yaml) |
 | v2.3.0 | [![E2E (Garage v2.3.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.3.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.3.0.yaml) |
+| v2.4.0 | [![E2E (Garage v2.4.0)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.4.0.yaml/badge.svg?branch=main)](https://github.com/axnic/pulumi-garage/actions/workflows/merge_group%2Cpull_request%2Cpush.e2e-v2.4.0.yaml) |
 
 Each workflow (`.github/workflows/merge_group,pull_request,push.e2e-v2.*.yaml`) is
 a thin caller of the central reusable E2E workflow in `axnic/.github` with that version pinned (new versions are added by that repo's E2E Sync workflow, which opens a PR) -
 GitHub Actions status badges are per-workflow-file, not per-matrix-leg, which is why
-this is four small files rather than one `strategy.matrix` job. `--single-node` (the
+this is five small files rather than one `strategy.matrix` job. `--single-node` (the
 fast layout-bootstrap path) only exists from Garage v2.3.0 onward, so
 `docker-compose.yml` and `scripts/bootstrap-garage.sh` always use the manual
-`layout assign`/`apply` bootstrap instead, which works identically across all four
+`layout assign`/`apply` bootstrap instead, which works identically across all five
 versions.
 
 ## Known limitations
