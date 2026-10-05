@@ -42,7 +42,7 @@ lint:
     - linters: [golangci-lint2]
       paths:
         - "*.yml"
-    # Go dependency vulns are covered by `security:audit` (govulncheck) and Dependabot; osv-scanner
+    # Go dependency vulns are covered by `security:audit` (govulncheck) and Dependabot alerts; osv-scanner
     # flags the current go.mod toolchain/deps until they are bumped.
     - linters: [osv-scanner]
       paths:
