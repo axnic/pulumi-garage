@@ -1,4 +1,30 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>axnic/.github:pulumi"]
+  "description": [
+    "Repository-specific Renovate rules on top of the shared Pulumi preset.",
+    "Inherited from the preset: minor and patch updates >= 1.0 grouped per manager (go, npm, github actions, mise), 'pulumi sdk' grouped (Go sdk + pkg, npm SDK and .pulumi.version move together), each 0.x minor and each major in its own PR, weekly schedule, build(deps) commit subjects."
+  ],
+  "extends": ["local>axnic/.github:pulumi"],
+  "minimumReleaseAge": "3 days",
+  "packageRules": [
+    {
+      "description": "The Go language version (go directive, also read by mise through vfox-pulumi) changes the CI toolchain: keep it out of the library group so a Go bump is reviewed on its own.",
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "groupName": "go toolchain"
+    },
+    {
+      "description": "Node: only even majors (LTS); odd releases are short-lived and never worth a PR.",
+      "matchManagers": ["mise"],
+      "matchPackageNames": ["node"],
+      "allowedVersions": "/^\\d*[02468]\\./"
+    },
+    {
+      "description": "Python and .NET are the floor supported by the generated SDKs: patches only, a minor or major bump is a deliberate decision.",
+      "matchManagers": ["mise"],
+      "matchPackageNames": ["python", "dotnet"],
+      "matchUpdateTypes": ["major", "minor"],
+      "enabled": false
+    }
+  ]
 }
