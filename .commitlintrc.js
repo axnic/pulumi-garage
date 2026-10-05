@@ -90,6 +90,9 @@ const scopes = [
 
 /** @type {import('@commitlint/types').UserConfig} */
 module.exports = {
+  // The merge commit of a Renovate pull request carries the PR body (release notes,
+  // long lines), set by the repository's merge_commit_message = PR_BODY.
+  ignores: [(message) => message.includes("This PR contains the following updates")],
   rules: {
     "body-full-stop": [0, "always", "."],
     "body-leading-blank": [2, "always"],
