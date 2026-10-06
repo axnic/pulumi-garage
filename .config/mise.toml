@@ -17,16 +17,16 @@ PULUMI_HOME = "{{config_root}}/.pulumi"
 # see the central Release workflow (axnic/.github). Java/Maven Central were dropped
 # (see git history) - too little pulumi+java adoption to justify the setup
 # cost (Sonatype namespace verification, GPG signing, etc).
-go = "{{ env.GO_VERSION_MISE }}"
-node = '24.18.0'
+go = "1.27.1"
+node = "26.10.0"
 python = '3.14.8'
-"vfox:version-fox/vfox-dotnet" = "8.0.20" # vfox backend doesn't work on Windows, gives "error converting Lua table to PreInstall (no version returned from vfox plugin)" https://github.com/jdx/mise/discussions/5876 https://github.com/jdx/mise/discussions/5550
+"vfox:version-fox/vfox-dotnet" = "10.0.12" # vfox backend doesn't work on Windows, gives "error converting Lua table to PreInstall (no version returned from vfox plugin)" https://github.com/jdx/mise/discussions/5876 https://github.com/jdx/mise/discussions/5550
 
 # Executable tools
 "github:pulumi/pulumi" = "{{ env.PULUMI_VERSION_MISE }}"
 "github:pulumi/pulumictl" = '0.0.50'
 "github:pulumi/schema-tools" = "0.8.1"
-"go:github.com/pulumi/upgrade-provider" = "main"
+"go:github.com/pulumi/upgrade-provider" = "0"
 "github:axnic/rtunk" = "latest"                          # Lint stack (golangci-lint, gofmt, yamllint, ...) driven by .rtunk/rtunk.yaml
 "go:golang.org/x/vuln/cmd/govulncheck" = "latest"        # Known-CVE scan of the provider's Go dependencies (`security:audit`)
 "npm:@commitlint/cli" = "21.2.3"
