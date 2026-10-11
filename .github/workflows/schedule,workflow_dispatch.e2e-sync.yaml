@@ -41,3 +41,5 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    with:
+      commit-subject: "ci(ci): Sync E2E callers"
