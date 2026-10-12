@@ -17,9 +17,9 @@ PULUMI_HOME = "{{config_root}}/.pulumi"
 # see the central Release workflow (axnic/.github). Java/Maven Central were dropped
 # (see git history) - too little pulumi+java adoption to justify the setup
 # cost (Sonatype namespace verification, GPG signing, etc).
-go = "1.27.1"
+go = "1.27.2"
 node = "26.10.0"
-python = '3.14.8'
+python = '3.15.0'
 "vfox:version-fox/vfox-dotnet" = "10.0.12" # vfox backend doesn't work on Windows, gives "error converting Lua table to PreInstall (no version returned from vfox plugin)" https://github.com/jdx/mise/discussions/5876 https://github.com/jdx/mise/discussions/5550
 
 # Executable tools
