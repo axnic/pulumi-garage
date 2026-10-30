@@ -89,7 +89,7 @@ jobs:
           fetch-depth: 0
 
       - name: 🔧 Install tools via mise
-        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           cache: true
           cache_key: "mise-v1-{{platform}}-{{file_hash}}"
@@ -100,7 +100,7 @@ jobs:
         run: ': > "$RUNNER_TEMP/notes.md"'
 
       - name: 🏗️ Build with goreleaser
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: ~> v2
           args: release --clean --skip=publish --release-notes=${{ runner.temp }}/notes.md
@@ -203,7 +203,7 @@ jobs:
           persist-credentials: false
 
       - name: 🔧 Install tools via mise
-        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           cache: true
           cache_key: "mise-v1-{{platform}}-{{file_hash}}"
@@ -286,7 +286,7 @@ jobs:
 
       - name: 🔧 Install tools via mise
         if: steps.credential.outputs.enabled == 'true'
-        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           cache: true
           cache_key: "mise-v1-{{platform}}-{{file_hash}}"
@@ -346,7 +346,7 @@ jobs:
 
       - name: 🔧 Install tools via mise
         if: steps.credential.outputs.mode != 'none'
-        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           cache: true
           cache_key: "mise-v1-{{platform}}-{{file_hash}}"
